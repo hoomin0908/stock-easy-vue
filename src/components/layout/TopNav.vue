@@ -4,7 +4,7 @@
       <div class="logo-badge">
         <svg viewBox="0 0 16 16"><polyline points="1,12 5,7 9,10 15,3" /></svg>
       </div>
-      스톡이지
+      STOCKEASY
     </router-link>
 
     <div class="nav-tabs">
