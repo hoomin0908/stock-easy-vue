@@ -93,7 +93,6 @@ onMounted(loadComponentData);
 }
 .video-card:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
 
-/* 고화질 썸네일 영역 */
 .video-thumbnail-wrapper { position: relative; width: 100%; padding-top: 56.25%; background: #f1f5f9; cursor: pointer; }
 .thumbnail-img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
 .play-icon { 
@@ -101,20 +100,18 @@ onMounted(loadComponentData);
   font-size: 40px; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.5); opacity: 0.9;
 }
 
-.video-info { padding: 14px; }
+.video-info { padding: 14px; text-align: left; }
 .video-title {
   font-size: 13.5px; font-weight: 700; color: #0f172a; line-height: 1.4; margin: 0 0 8px 0;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .channel-title { font-size: 12px; color: #94a3b8; }
 
-/* 반응형: 넓은 화면 3열 */
-@media (min-width: 1200px) {
+@media (min-width: 1400px) {
   .video-grid { flex-direction: row !important; flex-wrap: wrap; }
   .video-card { flex: 1 1 calc(33.33% - 14px); max-width: calc(33.33% - 14px); }
 }
 
-/* 로딩 스피너 */
 .feed-state-box { display: flex; flex-direction: column; align-items: center; padding: 40px; }
 .loading-spinner {
   width: 24px; height: 24px; border: 3px solid #f1f5f9; border-top: 3px solid #ef4444;
