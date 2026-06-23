@@ -1,5 +1,6 @@
 <template>
   <div class="detail-container">
+    <!-- 1. 상단 컨트롤 바 -->
     <div class="top-bar">
       <button class="back-btn" @click="router.push('/')">
         <svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6" /></svg>
@@ -12,10 +13,12 @@
       </a>
     </div>
 
+    <!-- 로딩 및 예외 처리 -->
     <div v-if="isLoading" class="empty-state">분석 데이터를 불러오는 중입니다...</div>
     <div v-else-if="!news || !analysis" class="empty-state">분석 정보를 표시할 수 없습니다.</div>
 
     <template v-else>
+      <!-- 기사 메인 타이틀 헤더 -->
       <header class="dashboard-header">
         <div class="meta-info">
           <span class="publisher">{{ news.publisher }}</span>
@@ -24,10 +27,13 @@
         <h1 class="main-title">{{ news.title }}</h1>
       </header>
 
+      <!-- 📊 메인 2단 레이아웃 -->
       <div class="dashboard-grid">
         
+        <!-- 🟢 [좌측 컬럼] AI 분석 데이터 스트림 -->
         <div class="grid-left">
           
+          <!-- 섹션 1: AI 정제 브리핑 -->
           <section class="board-card premium">
             <div class="card-label">
               <svg viewBox="0 0 24 24"><polygon points="13,2 3,14 12,14 11,22 21,10 12,10" /></svg>
@@ -36,6 +42,7 @@
             <p class="rewritten-text">{{ analysis.rewritten_content }}</p>
           </section>
 
+          <!-- 섹션 2: 종합 판단 & 임팩트 점수 -->
           <section class="board-card">
             <div class="card-label">시장 영향도 및 종합 판단</div>
             
@@ -56,6 +63,7 @@
               </div>
             </div>
 
+            <!-- 점수 산정 기준표 -->
             <div class="score-matrix">
               <div class="matrix-item" :class="{ active: analysis.impact_score <= 2 }"><b>0~2점</b> 영향 거의 없음</div>
               <div class="matrix-item" :class="{ active: analysis.impact_score > 2 && analysis.impact_score <= 4 }"><b>3~4점</b> 제한적 영향</div>
@@ -65,6 +73,7 @@
             </div>
           </section>
 
+          <!-- 섹션 3: 분석 근거 -->
           <section class="board-card">
             <div class="card-label">AI 분석 인사이트 및 근거</div>
             <p class="insight-text">{{ analysis.impact_reason }}</p>
@@ -74,6 +83,7 @@
             </div>
           </section>
 
+          <!-- 섹션 4: 투자 체크포인트 리스트 -->
           <section v-if="analysis.check_points?.length" class="board-card">
             <div class="card-label">
               <svg viewBox="0 0 24 24"><polyline points="9,11 12,14 22,4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
@@ -98,6 +108,7 @@
             </div>
           </section>
 
+          <!-- 섹션 5: 기사 내부 핵심 용어 브리핑 -->
           <section v-if="analysis.difficult_terms?.length" class="board-card">
             <div class="card-label">
               <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
@@ -129,17 +140,15 @@
 
         </div>
 
+        <!-- 🔵 [우측 컬럼] 외부 연동 인프라 컴포넌트 스트림 -->
         <div class="grid-right">
           
-          <div class="board-card placeholder-card">
-            <div class="card-label outline-label">
-              <span class="icon-yt">🔴</span> 관련 기업 YouTube 분석 영상
-            </div>
-            <div class="extend-box-dashed design-yt">
-              <p>추후 백엔드 연동 시<br><strong>{{ news.publisher }}</strong> 관련 유튜브 브리핑 데이터가 파싱됩니다.</p>
-            </div>
+          <!-- 1번 연동 완료: 인명 패턴을 예리하게 필터링한 진짜 '상장 기업명' 키워드로 유튜브 호출 -->
+          <div class="board-card">
+            <NewsYoutubeFeed :company-name="targetCompanyName" />
           </div>
 
+          <!-- 2번 대기: 카카오맵 기업 본사 위치 영역 -->
           <div class="board-card placeholder-card">
             <div class="card-label outline-label">
               <span class="icon-map">📍</span> 기업 본사 위치 (Kakao Map)
@@ -149,6 +158,7 @@
             </div>
           </div>
 
+          <!-- 3번 대기: 실시간 종목 커뮤니티 공간 -->
           <div class="board-card placeholder-card">
             <div class="card-label outline-label">
               <span class="icon-chat">💬</span> 주주 실시간 커뮤니티
@@ -161,6 +171,7 @@
         </div>
       </div>
 
+      <!-- 최하단 투자 고지문 -->
       <footer class="legal-disclaimer">
         아래 분석은 AI가 생성한 참고 자료예요. 투자 판단의 최종 책임은 본인에게 있어요.
       </footer>
@@ -172,6 +183,9 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { fetchNewsDetail } from "../services/api";
+
+// 🎥 유튜브 피드 컴포넌트 탑재
+import NewsYoutubeFeed from "../components/news/NewsYoutubeFeed.vue";
 
 const router = useRouter();
 const route = useRoute();
@@ -192,6 +206,10 @@ async function loadDetail() {
   try {
     const { data } = await fetchNewsDetail(route.params.id);
     news.value = data;
+    
+    // 데이터 확인용 콘솔로그 유지
+    console.log("★★ 백엔드에서 넘겨준 뉴스 상세 데이터 구조:", data);
+
     if (data?.ai_analysis?.difficult_terms?.length) {
       activeTerm.value = data.ai_analysis.difficult_terms[0];
     }
@@ -206,6 +224,37 @@ onMounted(loadDetail);
 watch(() => route.params.id, loadDetail);
 
 const analysis = computed(() => news.value?.ai_analysis);
+
+// ⭐ [정밀 수정] 인명(이찬진, 한찬식 등) 노이즈를 완전 스킵하고 진짜 상장사 키워드를 추출하는 알고리즘
+const targetCompanyName = computed(() => {
+  if (!news.value) return "해당 기업";
+  
+  if (news.value.stock_name) return news.value.stock_name;
+  if (news.value.company_name) return news.value.company_name;
+
+  const title = news.value.title || "";
+
+  // 따옴표 및 특수문자 노이즈 제거
+  let cleanTitle = title.replace(/[\[\]_""'']/g, " ").trim();
+
+  // 문장 기호 및 공백 단위 파싱
+  const tokens = cleanTitle.split(/[,:\s—–\.\?]/).filter(t => t.trim().length > 0);
+  if (tokens.length === 0) return "해당 기업";
+
+  const firstWord = tokens[0];
+  const secondWord = tokens[1] || "";
+
+  // 3글자 한국인 성씨 시작 인명 패턴 체크 (이XX, 한XX 등)
+  const isLikelyPerson = firstWord.length === 3 && /^[김이박최정강조윤장한신유전황소권]/.test(firstWord);
+  
+  if (isLikelyPerson && secondWord && secondWord.length >= 2) {
+    // 인명 스킵 후 다음 핵심 단어 정제 반환 ("이찬진 스페이스X" -> "스페이스X")
+    return secondWord.replace(/[^가-힣a-zA-Z0-9]/g, "");
+  }
+
+  // 일반적인 형태 정제 반환 ("팬젠, 국립..." -> "팬젠")
+  return firstWord.replace(/[^가-힣a-zA-Z0-9]/g, "") || "해당 기업";
+});
 
 function selectTerm(item) {
   activeTerm.value = activeTerm.value?.term === item.term ? null : item;
@@ -249,22 +298,8 @@ function formatDateTime(iso) {
   height: 100%;
 }
 
-.top-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-.back-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  border: none;
-  background: transparent;
-  color: var(--text2);
-  font-size: 13px;
-  cursor: pointer;
-}
+.top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.back-btn { display: inline-flex; align-items: center; gap: 4px; border: none; background: transparent; color: var(--text2); font-size: 13px; cursor: pointer; }
 .back-btn svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; fill: none; }
 
 .orig-link-btn {
@@ -281,17 +316,13 @@ function formatDateTime(iso) {
   text-decoration: none;
   transition: all 0.2s ease;
 }
-.orig-link-btn:hover {
-  background: var(--border);
-  color: var(--text1);
-}
+.orig-link-btn:hover { background: var(--border); color: var(--text1); }
 .orig-link-btn svg { width: 13px; height: 13px; stroke: currentColor; stroke-width: 2; fill: none; }
 
 .dashboard-header { margin-bottom: 24px; }
 .meta-info { font-size: 12px; color: var(--text3); margin-bottom: 6px; }
 .main-title { font-size: 20px; font-weight: 700; color: var(--text1); line-height: 1.4; }
 
-/* 🍊 레이아웃: 좌측 데이터 / 우측 확장 컴포넌트 공간 */
 .dashboard-grid {
   display: grid;
   grid-template-columns: 1.05fr 0.95fr;
@@ -306,10 +337,7 @@ function formatDateTime(iso) {
   padding: 20px;
   margin-bottom: 16px;
 }
-.board-card.premium {
-  background: #fdfcfa;
-  border-color: var(--amber-border);
-}
+.board-card.premium { background: #fdfcfa; border-color: var(--amber-border); }
 
 .card-label {
   display: flex;
@@ -408,11 +436,7 @@ function formatDateTime(iso) {
 .panel-desc { font-size: 12px; line-height: 1.55; color: var(--text2); }
 .explanation-placeholder { font-size: 12px; color: var(--text3); text-align: center; padding: 12px 0; }
 
-/* 🔵 우측 미래 컴포넌트 예약 와이어프레임 박스 스타일 */
-.placeholder-card {
-  background: #fafafa;
-  border: 1px dashed #cbd5e1;
-}
+.placeholder-card { background: #fafafa; border: 1px dashed #cbd5e1; }
 .outline-label { color: #64748b; font-size: 13px; }
 .extend-box-dashed {
   border: 1px dashed #e2e8f0;
@@ -425,7 +449,6 @@ function formatDateTime(iso) {
   color: #94a3b8;
   font-size: 12px;
 }
-.design-yt { height: 180px; }
 .design-map { height: 220px; }
 .design-chat { height: 260px; }
 
