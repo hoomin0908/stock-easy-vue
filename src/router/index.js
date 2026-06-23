@@ -4,7 +4,17 @@ const routes = [
   {
     path: "/",
     name: "news",
-    component: () => import("../views/NewsFeedView.vue"),
+    // 1. 목록과 상세를 동시에 품는 부모 허브가 됩니다.
+    component: () => import("../views/NewsFeedView.vue"), 
+    children: [
+      {
+        // 2. 주소가 /news/:id 로 바뀔 때 NewsFeedView 안의 <router-view /> 자리에 렌더링됩니다.
+        path: "news/:id",
+        name: "newsDetail",
+        component: () => import("../views/NewsDetailView.vue"),
+        props: true,
+      }
+    ]
   },
   {
     path: "/watchlist",

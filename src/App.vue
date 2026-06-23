@@ -6,7 +6,6 @@
       <main class="main">
         <router-view />
       </main>
-      <RightPanel />
     </div>
   </div>
 </template>
@@ -14,7 +13,6 @@
 <script setup>
 import TopNav from "./components/layout/TopNav.vue";
 import Sidebar from "./components/layout/Sidebar.vue";
-import RightPanel from "./components/layout/RightPanel.vue";
 </script>
 
 <style scoped>

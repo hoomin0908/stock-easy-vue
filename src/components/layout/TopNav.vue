@@ -21,7 +21,6 @@
       <div class="icon-btn" title="알림 (TODO: 알림 기능)">
         <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
       </div>
-      <!-- TODO: 로그인 연동 전까지는 더미 아바타 -->
       <div class="avatar">유저</div>
     </div>
   </nav>
@@ -48,12 +47,14 @@
   font-weight: 600;
   color: var(--text1);
   margin-right: 32px;
+  letter-spacing: -0.3px;
 }
 .logo-badge {
   width: 26px;
   height: 26px;
   border-radius: 7px;
-  background: var(--blue);
+  /* 🍊 로고 아이콘 배경을 오렌지로 변경 */
+  background: var(--primary, #ff5a1f);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -68,9 +69,17 @@
   color: var(--text2);
   border-bottom: 2.5px solid transparent;
   white-space: nowrap;
+  transition: all 0.15s ease;
 }
 .nav-tab:hover { color: var(--text1); }
-.nav-tab.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 500; }
+
+/* 🍊 활성화된 상단 탭 메뉴 텍스트 및 하단 테두리를 오렌지로 변경 */
+.nav-tab.active { 
+  color: var(--primary, #ff5a1f); 
+  border-bottom-color: var(--primary, #ff5a1f); 
+  font-weight: 600; 
+}
+
 .nav-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .icon-btn {
   width: 36px;
@@ -82,13 +91,17 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
+.icon-btn:hover { border-color: var(--primary-border); }
 .icon-btn svg { width: 18px; height: 18px; stroke: var(--text2); stroke-width: 1.8; fill: none; stroke-linecap: round; }
+
 .avatar {
   height: 34px;
   padding: 0 12px;
   border-radius: 17px;
-  background: var(--blue);
+  /* 🍊 유저 아바타 배경을 오렌지로 변경 */
+  background: var(--primary, #ff5a1f);
   color: #fff;
   display: flex;
   align-items: center;

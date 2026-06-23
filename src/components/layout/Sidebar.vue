@@ -23,7 +23,6 @@
     </nav>
 
     <div v-if="isOpen" class="section-content">
-      <!-- 관심 종목 -->
       <div v-if="activeSection === 'watchlist'">
         <div v-if="watchlist.length === 0" class="empty-state" style="padding: 24px 4px">
           아직 등록한 관심 종목이 없어요
@@ -41,7 +40,6 @@
         </div>
       </div>
 
-      <!-- 업종 필터 -->
       <div v-else-if="activeSection === 'sector'">
         <div class="sector-list">
           <div
@@ -56,7 +54,6 @@
         </div>
       </div>
 
-      <!-- 저장된 용어 -->
       <div v-else-if="activeSection === 'terms'">
         <div v-if="savedTerms.length === 0" class="empty-state" style="padding: 24px 4px">
           저장한 용어가 없어요
@@ -68,7 +65,6 @@
     </div>
 
     <div class="sidebar-footer">
-      <!-- TODO: 로그인 연동 전까지는 더미 -->
       <div class="user-row">
         <div class="avatar">유저</div>
         <div v-if="isOpen" class="user-info">
@@ -109,10 +105,9 @@ const activeSection = ref("watchlist");
 
 function selectSection(key) {
   activeSection.value = key;
-  if (!isOpen.value) isOpen.value = true; // 접혀있을 때 아이콘 누르면 펼치면서 해당 섹션 보여줌
+  if (!isOpen.value) isOpen.value = true;
 }
 
-// TODO: 팀원 API 연동 전까지는 빈 배열
 const watchlist = ref([]);
 const savedTerms = ref([]);
 
@@ -129,6 +124,7 @@ const activeSector = ref("전체");
   flex-direction: column;
   padding: 12px 0;
   transition: width 0.18s ease;
+  background: var(--bg);
   overflow: hidden;
 }
 .sidebar.collapsed { width: 56px; }
@@ -145,6 +141,7 @@ const activeSector = ref("전체");
   justify-content: center;
   border-radius: 6px;
   color: var(--text3);
+  transition: background 0.15s, color 0.15s;
 }
 .toggle-btn:hover { background: var(--bg2); color: var(--text1); }
 .toggle-btn svg { width: 17px; height: 17px; stroke: currentColor; stroke-width: 1.7; fill: none; transition: transform 0.18s ease; }
@@ -163,9 +160,16 @@ const activeSector = ref("전체");
   font-size: 13px;
   white-space: nowrap;
   overflow: hidden;
+  transition: all 0.15s ease;
 }
-.section-btn:hover { background: var(--bg2); }
-.section-btn.active { background: var(--blue-bg); color: var(--blue); font-weight: 600; }
+.section-btn:hover { background: var(--bg2); color: var(--text1); }
+
+/* 🍊 사이드바 주 메뉴 활성화 스타일을 오렌지 매핑으로 교체 */
+.section-btn.active { 
+  background: var(--primary-bg, #fff5f1); 
+  color: var(--primary, #ff5a1f); 
+  font-weight: 600; 
+}
 .section-btn svg { width: 17px; height: 17px; stroke: currentColor; stroke-width: 1.7; fill: none; flex-shrink: 0; }
 .section-label { overflow: hidden; text-overflow: ellipsis; }
 
@@ -177,7 +181,9 @@ const activeSector = ref("전체");
   border-top: 1px solid var(--border);
 }
 
-.stock-item { display: flex; align-items: center; gap: 10px; padding: 8px 5px; border-radius: var(--radius); cursor: pointer; }
+.empty-state { font-size: 12px; color: var(--text3); text-align: center; }
+
+.stock-item { display: flex; align-items: center; gap: 10px; padding: 8px 5px; border-radius: var(--radius); cursor: pointer; transition: background 0.15s; }
 .stock-item:hover { background: var(--bg2); }
 .stock-ticker {
   width: 36px; height: 36px; border-radius: var(--radius); flex-shrink: 0;
@@ -185,28 +191,49 @@ const activeSector = ref("전체");
   display: flex; align-items: center; justify-content: center;
   font-size: 10px; font-weight: 600; color: var(--text2);
 }
-.stock-name { font-size: 13px; font-weight: 500; }
+.stock-name { font-size: 13px; font-weight: 500; color: var(--text1); }
 .stock-price { font-size: 11px; color: var(--text2); margin-top: 1px; }
+
 .add-btn {
   display: flex; align-items: center; gap: 6px; padding: 8px 5px;
   font-size: 12px; color: var(--text3); border: 1px dashed var(--border);
   border-radius: var(--radius); margin-top: 6px; cursor: pointer;
+  transition: all 0.15s ease;
 }
+/* 🍊 종목 추가 버튼 호버 시 상호작용 강화 */
+.add-btn:hover { border-color: var(--primary-border); color: var(--primary); }
+.add-btn:hover svg { stroke: var(--primary); }
 .add-btn svg { width: 14px; height: 14px; stroke: var(--text3); stroke-width: 2; fill: none; }
 
-.word-pills { display: flex; flex-wrap: wrap; gap: 4px; }
-.word-pill { padding: 4px 9px; border-radius: 20px; background: var(--amber-bg); border: 1px solid var(--amber-border); font-size: 11px; color: var(--amber); }
+.word-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+/* 🍊 저장된 용어 뱃지를 기존의 탁한 노란색(amber) 대신 산뜻한 오렌지 테마로 통일 */
+.word-pill { 
+  padding: 4px 9px; 
+  border-radius: 20px; 
+  background: var(--primary-bg, #fff5f1); 
+  border: 1px solid var(--primary-border, #ffe2d5); 
+  font-size: 11px; 
+  color: var(--primary, #ff5a1f); 
+  font-weight: 500;
+}
 
 .sector-list { display: flex; flex-direction: column; gap: 4px; }
-.sector-chip { padding: 7px 10px; border-radius: var(--radius); font-size: 12px; border: 1px solid var(--border); color: var(--text2); cursor: pointer; }
-.sector-chip:hover { background: var(--bg2); }
-.sector-chip.active { background: var(--blue); color: #fff; border-color: var(--blue); font-weight: 500; }
+.sector-chip { padding: 7px 10px; border-radius: var(--radius); font-size: 12px; border: 1px solid var(--border); color: var(--text2); cursor: pointer; transition: all 0.15s ease; }
+.sector-chip:hover { background: var(--bg2); color: var(--text1); border-color: var(--primary-border); }
+/* 🍊 업종 필터 액티브 칩 컬러 변경 */
+.sector-chip.active { 
+  background: var(--primary, #ff5a1f); 
+  color: #fff; 
+  border-color: var(--primary, #ff5a1f); 
+  font-weight: 600; 
+}
 
 .sidebar-footer { border-top: 1px solid var(--border); padding: 10px 8px 4px; margin-top: 8px; }
 .user-row { display: flex; align-items: center; gap: 8px; }
+/* 🍊 하단 푸터 아바타 배경색 수정 */
 .avatar {
   width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
-  background: var(--blue); color: #fff; font-size: 11px; font-weight: 700;
+  background: var(--primary, #ff5a1f); color: #fff; font-size: 11px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
 }
 .user-info { flex: 1; min-width: 0; }
