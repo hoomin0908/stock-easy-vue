@@ -176,7 +176,7 @@
                       <p v-else class="msg-txt">{{ comment.content }}</p>
 
                       <span class="chat-time">
-                        {{ formatCommentTime(comment.created_at) }}
+                        {{ formatCommentTime(getCommentDisplayTime(comment)) }}
                         <template v-if="isEdited(comment)"> · 수정됨</template>
                       </span>
                     </div>
@@ -402,6 +402,10 @@ function isEdited(comment) {
     comment.updated_at &&
     comment.created_at !== comment.updated_at
   );
+}
+
+function getCommentDisplayTime(comment) {
+  return isEdited(comment) ? comment.updated_at : comment.created_at;
 }
 
 function formatCommentTime(value) {
