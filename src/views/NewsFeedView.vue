@@ -128,8 +128,11 @@ const filters = [
 ];
 const activeFilter = ref("ALL");
 const newsList = ref([]);
+const isNewsLoading = ref(false);
+const newsError = ref("");
 const currentPage = ref(1);
 const pageSize = 14;
+let latestNewsRequestId = 0;
 
 function clampListWidth(width) {
   const containerWidth = splitContainer.value?.clientWidth || window.innerWidth;
@@ -201,7 +204,7 @@ const loadNews = async () => {
     } else if (themeId) {
       response = await fetchNewsByTheme(themeId);
     } else {
-      response = await apiModule.fetchNewsFeed();
+      response = await fetchNewsFeed();
     }
 
     if (requestId !== latestNewsRequestId) return;
@@ -355,11 +358,6 @@ onMounted(() => {
 onUnmounted(() => {
   stopResize();
   window.removeEventListener("resize", handleWindowResize);
-});
-
-// 테마 필터 바뀔 시 원본 갱신
-watch(() => route.query.sector, () => {
-  loadNews();
 });
 
 watch(

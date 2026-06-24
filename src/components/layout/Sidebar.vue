@@ -55,25 +55,23 @@
               아직 등록한 관심 기업이 없습니다.
             </div>
 
-            <div v-else class="stock-list-wrapper">
+            <div v-else class="sector-grid-layout">
               <div
                 v-for="interest in interestStocks"
                 :key="interest.id"
-                class="company-list-card"
+                class="interest-sector-row"
                 :class="{
-                  'filter-active':
+                  active:
                     String(route.query.stockId) === String(interest.stock.id)
                 }"
               >
                 <button
                   type="button"
-                  class="company-card-main"
+                  class="luxury-sector-chip interest-sector-chip"
                   @click="selectInterestStock(interest)"
                 >
-                  <span class="company-card-info">
-                    <strong>{{ interest.stock.stock_name }}</strong>
-                    <small>{{ interest.stock.stock_code }}</small>
-                  </span>
+                  <strong>{{ interest.stock.stock_name }}</strong>
+                  <small>{{ interest.stock.stock_code }}</small>
                 </button>
 
                 <button
@@ -564,13 +562,21 @@ onBeforeUnmount(() => {
 .stock-price-tag { font-size: 11px; color: var(--text3); margin-top: 2px; }
 .active-indicator-dot { width: 6px; height: 6px; background: var(--primary); border-radius: 50%; position: absolute; right: 12px; top: calc(50% - 3px); }
 
-.company-list-card { min-height: 48px; display: flex; align-items: center; gap: 8px; padding: 8px 9px 8px 11px; border: 1px solid var(--border); border-radius: var(--radius); background: #fff; transition: all 0.2s ease; }
-.company-list-card:hover { border-color: var(--primary-border); background: var(--primary-bg); }
+.company-list-card { min-height: 42px; display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 12px; border: 1px solid transparent; border-radius: var(--radius); background: transparent; transition: all 0.15s ease; }
+.company-list-card:hover { background: var(--bg2); }
 .company-list-card.filter-active { border-color: var(--primary); background: var(--primary-bg); }
 .company-card-main { flex: 1; min-width: 0; align-self: stretch; display: flex; align-items: center; padding: 0; border: none; background: transparent; cursor: pointer; font: inherit; }
 .company-card-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; text-align: left; }
-.company-card-info strong { overflow: hidden; color: var(--text1); font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.company-card-info strong { overflow: hidden; color: var(--text2); font-size: 12.5px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
 .company-card-info small { color: var(--text3); font-size: 10.5px; line-height: 1; }
+.interest-sector-row { display: flex; align-items: center; gap: 6px; border-radius: var(--radius); transition: background 0.15s ease; }
+.interest-sector-row:hover { background: var(--bg2); }
+.interest-sector-row.active { background: var(--primary-bg); }
+.interest-sector-row.active .luxury-sector-chip { color: var(--primary); border-color: var(--primary-border); font-weight: 600; }
+.interest-sector-chip { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.interest-sector-chip strong { max-width: 100%; overflow: hidden; color: inherit; font-size: inherit; font-weight: inherit; text-overflow: ellipsis; white-space: nowrap; }
+.interest-sector-chip small { color: var(--text3); font-size: 10.5px; line-height: 1.2; }
+.interest-sector-row.active .interest-sector-chip small { color: var(--primary); opacity: 0.74; }
 .heart-btn { width: 30px; height: 30px; flex-shrink: 0; display: grid; place-items: center; padding: 0; border: none; border-radius: 50%; background: transparent; color: #cbd5e1; cursor: pointer; transition: all 0.15s ease; }
 .heart-btn:hover { background: #fff1f2; color: #fb7185; }
 .heart-btn svg { width: 17px; height: 17px; fill: transparent; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
@@ -596,7 +602,7 @@ onBeforeUnmount(() => {
 .premium-sector-input { width: 100%; padding: 9px 12px 9px 32px; border-radius: 9px; border: 1px solid var(--border); font-size: 12.5px; background: var(--cream); color: var(--text1); transition: all 0.2s ease; }
 .premium-sector-input:focus { outline: none; border-color: var(--primary); background: var(--cream); box-shadow: 0 0 0 3px rgba(255, 90, 31, 0.08); }
 .sector-grid-layout { display: flex; flex-direction: column; gap: 4px; text-align: left; }
-.luxury-sector-chip { padding: 9px 12px; border-radius: var(--radius); font-size: 12.5px; border: 1px solid transparent; color: var(--text2); cursor: pointer; transition: all 0.15s ease; }
+.luxury-sector-chip { width: 100%; padding: 9px 12px; border-radius: var(--radius); border: 1px solid transparent; background: transparent; color: var(--text2); cursor: pointer; font: inherit; font-size: 12.5px; text-align: left; transition: all 0.15s ease; }
 .luxury-sector-chip:hover { background: var(--bg2); color: var(--text1); }
 .luxury-sector-chip.active { background: var(--primary-bg); color: var(--primary); border-color: var(--primary-border); font-weight: 600; }
 .sidebar-footer { border-top: 1px solid var(--border); padding: 14px 12px; margin-top: auto; }
