@@ -23,17 +23,35 @@
     </nav>
 
     <div v-if="isOpen" class="section-content">
+      
       <div v-if="activeSection === 'watchlist'">
-        <div v-if="watchlist.length === 0" class="empty-state" style="padding: 24px 4px">
-          아직 등록한 관심 종목이 없어요
+        <div v-if="selectedStockFilter" class="filter-notice-bar">
+          <span class="notice-txt">🎯 '{{ selectedStockFilter }}' 필터 중</span>
+          <button class="clear-filter-btn" @click="selectedStockFilter = null">✕</button>
         </div>
-        <div v-for="stock in watchlist" :key="stock.id" class="stock-item">
-          <div class="stock-ticker">{{ stock.shortName }}</div>
-          <div>
-            <div class="stock-name">{{ stock.name }}</div>
-            <div class="stock-price">{{ stock.price }}</div>
+
+        <div v-if="watchlistItems.length === 0" class="empty-state-box">
+          <svg viewBox="0 0 24 24" class="empty-icon"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" /></svg>
+          <p>아직 등록한 관심 종목이 없어요</p>
+        </div>
+
+        <div class="stock-list-wrapper">
+          <div 
+            v-for="stock in watchlistItems" 
+            :key="stock.id" 
+            class="stock-item-card"
+            :class="{ 'filter-active': selectedStockFilter === stock.name }"
+            @click="toggleStockFilter(stock.name)"
+          >
+            <div class="stock-avatar-badge">{{ stock.shortName }}</div>
+            <div class="stock-meta-info">
+              <div class="stock-title-name">{{ stock.name }}</div>
+              <div class="stock-price-tag">{{ stock.price }}</div>
+            </div>
+            <div class="active-indicator-dot" v-if="selectedStockFilter === stock.name"></div>
           </div>
         </div>
+
         <div class="add-btn">
           <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
           종목 추가
@@ -41,22 +59,27 @@
       </div>
 
       <div v-else-if="activeSection === 'sector'">
-        <div class="sector-list">
+        <div class="search-input-container">
+          <svg viewBox="0 0 24 24" class="search-lens"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+          <input v-model="themeSearch" type="text" placeholder="테마 검색..." class="premium-sector-input" />
+        </div>
+
+        <div class="sector-grid-layout">
           <div
-            v-for="sector in sectors"
-            :key="sector"
-            class="sector-chip"
-            :class="{ active: sector === activeSector }"
-            @click="activeSector = sector"
+            v-for="theme in filteredThemes"
+            :key="theme"
+            class="luxury-sector-chip"
+            :class="{ active: theme === activeTheme }"
+            @click="handleThemeClick(theme)"
           >
-            {{ sector }}
+            {{ theme }}
           </div>
         </div>
       </div>
 
       <div v-else-if="activeSection === 'terms'">
-        <div v-if="savedTerms.length === 0" class="empty-state" style="padding: 24px 4px">
-          저장한 용어가 없어요
+        <div v-if="savedTerms.length === 0" class="empty-state-box">
+          <p>저장한 용어가 없어요</p>
         </div>
         <div class="word-pills">
           <span v-for="term in savedTerms" :key="term.id" class="word-pill">{{ term.name }}</span>
@@ -65,10 +88,10 @@
     </div>
 
     <div class="sidebar-footer">
-      <div class="user-row">
-        <div class="avatar">유저</div>
-        <div v-if="isOpen" class="user-info">
-          <div class="user-name">홍길동</div>
+      <div class="user-row-card">
+        <div class="user-avatar-circle">유저</div>
+        <div v-if="isOpen" class="user-profile-meta">
+          <div class="user-display-name">홍길동</div>
         </div>
         <button v-if="isOpen" class="icon-btn-sm" title="설정">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
@@ -79,169 +102,108 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed, inject } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
+const route = useRoute();
+const router = useRouter();
 const isOpen = ref(true);
+const activeSection = ref("watchlist");
+const themeSearch = ref("");
+
+// 부모(App.vue) 전역 Provide 데이터 인젝션
+const watchlistItems = inject("watchlistItems", ref([]));
+const selectedStockFilter = inject("selectedStockFilter", ref(null));
+const toggleStockFilter = inject("toggleStockFilter");
 
 const sections = [
-  {
-    key: "watchlist",
-    label: "관심 종목",
-    icon: '<polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />',
-  },
-  {
-    key: "sector",
-    label: "업종 필터",
-    icon: '<rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" />',
-  },
-  {
-    key: "terms",
-    label: "저장된 용어",
-    icon: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />',
-  },
+  { key: "watchlist", label: "관심 종목", icon: '<polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />' },
+  { key: "sector", label: "인기 테마", icon: '<rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" />' },
+  { key: "terms", label: "저장된 용어", icon: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />' }
 ];
-
-const activeSection = ref("watchlist");
 
 function selectSection(key) {
   activeSection.value = key;
   if (!isOpen.value) isOpen.value = true;
 }
 
-const watchlist = ref([]);
-const savedTerms = ref([]);
+// 💡 10대 인기 테마 하드코딩 리스트 구성 완료
+const popularThemes = [
+  "전체", 
+  "반도체", 
+  "IT · 플랫폼", 
+  "자동차", 
+  "바이오", 
+  "금융", 
+  "에너지", 
+  "2차전지", 
+  "엔터테인먼트",
+  "우주항공",
+  "인공지능(AI)"
+];
 
-const sectors = ["전체", "반도체", "IT · 플랫폼", "자동차", "바이오", "금융", "에너지"];
-const activeSector = ref("전체");
+const activeTheme = ref("전체");
+
+const filteredThemes = computed(() => {
+  if (!themeSearch.value) return popularThemes;
+  return popularThemes.filter(t => t.toLowerCase().includes(themeSearch.value.toLowerCase()) || t === "전체");
+});
+
+function handleThemeClick(theme) {
+  activeTheme.value = theme;
+  // 주소창에 ?sector=테마명 파라미터를 넘겨주어 NewsFeedView와 동기화
+  router.push({ path: '/', query: { ...route.query, sector: theme === '전체' ? undefined : theme } });
+}
+
+const savedTerms = ref([]);
 </script>
 
 <style scoped>
-.sidebar {
-  width: 220px;
-  flex-shrink: 0;
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  padding: 12px 0;
-  transition: width 0.18s ease;
-  background: var(--bg);
-  overflow: hidden;
-}
-.sidebar.collapsed { width: 56px; }
-
-.toggle-btn {
-  width: 28px;
-  height: 28px;
-  margin: 0 0 14px 14px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  color: var(--text3);
-  transition: background 0.15s, color 0.15s;
-}
+.sidebar { width: 250px; flex-shrink: 0; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 12px 0 0; transition: width 0.25s ease; background: var(--bg); overflow: hidden; }
+.sidebar.collapsed { width: 68px; }
+.toggle-btn { width: 34px; height: 34px; margin: 0 0 14px 16px; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 8px; color: var(--text3); transition: all 0.2s ease; }
 .toggle-btn:hover { background: var(--bg2); color: var(--text1); }
-.toggle-btn svg { width: 17px; height: 17px; stroke: currentColor; stroke-width: 1.7; fill: none; transition: transform 0.18s ease; }
-
-.section-nav { display: flex; flex-direction: column; gap: 2px; padding: 0 8px; }
-.section-btn {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 10px;
-  border: none;
-  background: transparent;
-  border-radius: var(--radius);
-  cursor: pointer;
-  color: var(--text2);
-  font-size: 13px;
-  white-space: nowrap;
-  overflow: hidden;
-  transition: all 0.15s ease;
-}
+.toggle-btn svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.8; fill: none; transition: transform 0.25s ease; }
+.section-nav { display: flex; flex-direction: column; gap: 4px; padding: 0 12px; }
+.section-btn { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: none; background: transparent; border-radius: var(--radius); cursor: pointer; color: var(--text2); font-size: 13.5px; white-space: nowrap; overflow: hidden; transition: all 0.2s ease; }
 .section-btn:hover { background: var(--bg2); color: var(--text1); }
-
-/* 🍊 사이드바 주 메뉴 활성화 스타일을 오렌지 매핑으로 교체 */
-.section-btn.active { 
-  background: var(--primary-bg, #fff5f1); 
-  color: var(--primary, #ff5a1f); 
-  font-weight: 600; 
-}
-.section-btn svg { width: 17px; height: 17px; stroke: currentColor; stroke-width: 1.7; fill: none; flex-shrink: 0; }
+.section-btn.active { background: var(--primary-bg, #fff5f1); color: var(--primary, #ff5a1f); font-weight: 600; }
+.section-btn svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.8; fill: none; flex-shrink: 0; }
 .section-label { overflow: hidden; text-overflow: ellipsis; }
-
-.section-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 14px 14px 0;
-  margin-top: 4px;
-  border-top: 1px solid var(--border);
-}
-
-.empty-state { font-size: 12px; color: var(--text3); text-align: center; }
-
-.stock-item { display: flex; align-items: center; gap: 10px; padding: 8px 5px; border-radius: var(--radius); cursor: pointer; transition: background 0.15s; }
-.stock-item:hover { background: var(--bg2); }
-.stock-ticker {
-  width: 36px; height: 36px; border-radius: var(--radius); flex-shrink: 0;
-  background: var(--bg2); border: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 600; color: var(--text2);
-}
-.stock-name { font-size: 13px; font-weight: 500; color: var(--text1); }
-.stock-price { font-size: 11px; color: var(--text2); margin-top: 1px; }
-
-.add-btn {
-  display: flex; align-items: center; gap: 6px; padding: 8px 5px;
-  font-size: 12px; color: var(--text3); border: 1px dashed var(--border);
-  border-radius: var(--radius); margin-top: 6px; cursor: pointer;
-  transition: all 0.15s ease;
-}
-/* 🍊 종목 추가 버튼 호버 시 상호작용 강화 */
-.add-btn:hover { border-color: var(--primary-border); color: var(--primary); }
-.add-btn:hover svg { stroke: var(--primary); }
-.add-btn svg { width: 14px; height: 14px; stroke: var(--text3); stroke-width: 2; fill: none; }
-
+.section-content { flex: 1; overflow-y: auto; padding: 16px 16px 0; margin-top: 4px; border-top: 1px solid var(--border); display: flex; flex-direction: column; }
+.section-content::-webkit-scrollbar { width: 4px; }
+.section-content::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+.filter-notice-bar { display: flex; justify-content: space-between; align-items: center; background: var(--primary-bg); color: var(--primary); border: 1px solid var(--primary-border); font-size: 11.5px; padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; font-weight: 600; }
+.clear-filter-btn { border: none; background: transparent; color: var(--primary); cursor: pointer; font-size: 12px; }
+.empty-state-box { padding: 24px 0; text-align: center; color: var(--text3); }
+.empty-icon { width: 22px; height: 24px; stroke: var(--text3); stroke-width: 1.5; fill: none; margin-bottom: 6px; }
+.stock-list-wrapper { display: flex; flex-direction: column; gap: 6px; }
+.stock-item-card { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: var(--radius); border: 1px solid transparent; cursor: pointer; position: relative; transition: all 0.2s ease; background: var(--bg2); }
+.stock-item-card:hover { background: #ffffff; border-color: var(--border); transform: translateX(2px); }
+.stock-item-card.filter-active { background: var(--primary-bg); border-color: var(--primary-border); }
+.stock-avatar-badge { width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0; background: #ffffff; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--text2); }
+.stock-meta-info { flex: 1; min-width: 0; text-align: left; }
+.stock-title-name { font-size: 13px; font-weight: 600; color: var(--text1); }
+.stock-price-tag { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.active-indicator-dot { width: 6px; height: 6px; background: var(--primary); border-radius: 50%; position: absolute; right: 12px; top: calc(50% - 3px); }
+.add-btn { display: flex; align-items: center; gap: 6px; padding: 10px; font-size: 12.5px; color: var(--text3); border: 1px dashed var(--border); border-radius: var(--radius); margin-top: 12px; cursor: pointer; justify-content: center; transition: all 0.15s ease; background: #fff; }
+.add-btn:hover { border-color: var(--primary-border); color: var(--primary); background: var(--primary-bg); }
 .word-pills { display: flex; flex-wrap: wrap; gap: 6px; }
-/* 🍊 저장된 용어 뱃지를 기존의 탁한 노란색(amber) 대신 산뜻한 오렌지 테마로 통일 */
-.word-pill { 
-  padding: 4px 9px; 
-  border-radius: 20px; 
-  background: var(--primary-bg, #fff5f1); 
-  border: 1px solid var(--primary-border, #ffe2d5); 
-  font-size: 11px; 
-  color: var(--primary, #ff5a1f); 
-  font-weight: 500;
-}
-
-.sector-list { display: flex; flex-direction: column; gap: 4px; }
-.sector-chip { padding: 7px 10px; border-radius: var(--radius); font-size: 12px; border: 1px solid var(--border); color: var(--text2); cursor: pointer; transition: all 0.15s ease; }
-.sector-chip:hover { background: var(--bg2); color: var(--text1); border-color: var(--primary-border); }
-/* 🍊 업종 필터 액티브 칩 컬러 변경 */
-.sector-chip.active { 
-  background: var(--primary, #ff5a1f); 
-  color: #fff; 
-  border-color: var(--primary, #ff5a1f); 
-  font-weight: 600; 
-}
-
-.sidebar-footer { border-top: 1px solid var(--border); padding: 10px 8px 4px; margin-top: 8px; }
-.user-row { display: flex; align-items: center; gap: 8px; }
-/* 🍊 하단 푸터 아바타 배경색 수정 */
-.avatar {
-  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
-  background: var(--primary, #ff5a1f); color: #fff; font-size: 11px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
-}
-.user-info { flex: 1; min-width: 0; }
-.user-name { font-size: 12.5px; font-weight: 600; color: var(--text1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.icon-btn-sm {
-  width: 28px; height: 28px; flex-shrink: 0; border: none; background: transparent;
-  border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text3);
-}
+.word-pill { padding: 5px 10px; border-radius: 20px; background: var(--primary-bg); border: 1px solid var(--primary-border); font-size: 11px; color: var(--primary); font-weight: 600; }
+.search-input-container { position: relative; margin-bottom: 14px; display: flex; align-items: center; }
+.search-lens { position: absolute; left: 10px; width: 14px; height: 14px; stroke: var(--text3); stroke-width: 2; fill: none; }
+.premium-sector-input { width: 100%; padding: 8px 12px 8px 32px; border-radius: var(--radius); border: 1px solid var(--border); font-size: 12.5px; background: var(--bg2); transition: all 0.2s ease; }
+.premium-sector-input:focus { outline: none; border-color: var(--primary); background: #ffffff; box-shadow: 0 0 0 3px rgba(255, 90, 31, 0.08); }
+.sector-grid-layout { display: flex; flex-direction: column; gap: 4px; text-align: left; }
+.luxury-sector-chip { padding: 9px 12px; border-radius: var(--radius); font-size: 12.5px; border: 1px solid transparent; color: var(--text2); cursor: pointer; transition: all 0.15s ease; }
+.luxury-sector-chip:hover { background: var(--bg2); color: var(--text1); }
+.luxury-sector-chip.active { background: var(--primary); color: #ffffff; font-weight: 600; }
+.sidebar-footer { border-top: 1px solid var(--border); padding: 14px 12px; margin-top: auto; }
+.user-row-card { display: flex; align-items: center; gap: 10px; }
+.user-avatar-circle { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; background: var(--primary); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(255, 90, 31, 0.2); }
+.user-profile-meta { flex: 1; min-width: 0; text-align: left; }
+.user-display-name { font-size: 13px; font-weight: 600; color: var(--text1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.icon-btn-sm { width: 28px; height: 28px; flex-shrink: 0; border: none; background: transparent; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text3); }
 .icon-btn-sm:hover { background: var(--bg2); color: var(--text1); }
 .icon-btn-sm svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 1.7; fill: none; }
 </style>
