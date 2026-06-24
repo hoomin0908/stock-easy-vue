@@ -85,7 +85,18 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #fff8f4 0%, #f8fafc 50%, #ffffff 100%);
+  background-color: #fff8f4;
+  background-image:
+    linear-gradient(
+      135deg,
+      rgba(255, 248, 244, 0.9) 0%,
+      rgba(248, 250, 252, 0.72) 48%,
+      rgba(255, 255, 255, 0.36) 100%
+    ),
+    url("../assets/images/landing-bull-warm.png");
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
   position: relative;
   overflow: hidden;
 }
@@ -114,7 +125,11 @@ onMounted(async () => {
   width: 80px;
   height: 80px;
   border-radius: 20px;
-  background: linear-gradient(135deg, var(--primary) 0%, #ff7a3f 100%);
+ background: linear-gradient(
+135deg,
+#ff7a18,
+#ff9f43
+);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -296,6 +311,18 @@ onMounted(async () => {
 
 /* 반응형 */
 @media (max-width: 600px) {
+  .landing-page {
+    background-image:
+      linear-gradient(
+        135deg,
+        rgba(255, 248, 244, 0.96) 0%,
+        rgba(248, 250, 252, 0.88) 55%,
+        rgba(255, 255, 255, 0.62) 100%
+      ),
+      url("../assets/images/landing-bull-warm.png");
+    background-position: 62% center;
+  }
+
   .brand-name {
     font-size: 42px;
   }
