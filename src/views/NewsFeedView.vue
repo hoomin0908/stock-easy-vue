@@ -1,6 +1,7 @@
 <template>
   <div class="split-container">
     <aside class="list-side" :class="{ 'has-detail': route.params.id }">
+      
       <div class="filter-bar">
         <button
           v-for="f in filters"
@@ -20,7 +21,7 @@
             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
           </svg>
           표시할 뉴스가 없어요<br />
-          <span style="font-size: 11px; color: var(--text3)">선택하신 테마 조건의 기사가 부재합니다.</span>
+          <span style="font-size: 11px; color: var(--text3)">선택하신 테마 및 감정 조건의 기사가 부재합니다.</span>
         </div>
 
         <NewsCard 
@@ -68,11 +69,11 @@
 import { ref, onMounted, watch, computed, inject } from "vue";
 import { useRoute } from "vue-router";
 import NewsCard from "../components/news/NewsCard.vue";
-import { fetchNewsFeed } from "../services/api";
+import * as apiModule from "../services/api";
 
 const route = useRoute();
 
-// App.vue로부터 전역 주식 필터 Inject
+// App.vue 전역 관심종목 검색어 Inject
 const selectedStockFilter = inject("selectedStockFilter", ref(null));
 
 const filters = [
@@ -84,35 +85,63 @@ const filters = [
 const activeFilter = ref("ALL");
 const newsList = ref([]);
 
-// 💡 백엔드 시리얼라이저 수정 없이 프론트엔드 단에서 테마별 연관 키워드를 맵핑하여 해결
 const themeKeywords = {
   "반도체": ["반도체", "칩", "삼성전자", "SK하이닉스", "엔비디아", "파운드리", "HBM", "설계"],
   "IT · 플랫폼": ["IT", "플랫폼", "네이버", "카카오", "구글", "소프트웨어", "포털", "웹툰", "서비스"],
   "자동차": ["자동차", "차량", "현대차", "기아", "완성차", "모빌리티", "부품", "전기차"],
   "바이오": ["바이오", "제약", "헬스케어", "임상", "신약", "셀트리온", "삼성바이오", "의료", "백신"],
   "금융": ["금융", "은행", "금리", "환율", "KB국민", "신한", "우리", "하나", "증권", "투자", "대출"],
-  "에너지": ["에너지", "정유", "태양광", "풍력", "정유", "유가", "석유", "가스", "전력", "발전"],
+  "에너지": ["에너지", "정유", "태양광", "풍력", "유가", "석유", "가스", "전력", "발전"],
   "2차전지": ["2차전지", "배터리", "양극재", "에코프로", "포스코퓨처", "LG엔솔", "삼성SDI", "리튬"],
   "엔터테인먼트": ["엔터", "하이브", "SM", "JYP", "YG", "콘서트", "음원", "K팝", "드라마", "영화"],
   "우주항공": ["우주", "항공", "위성", "발사체", "KAI", "한화에어로", "드론", "UAM", "방산"],
   "인공지능(AI)": ["인공지능", "AI", "챗GPT", "LLM", "딥러닝", "머신러닝", "생성형", "로봇"]
 };
 
+// 1. 백엔드 전체 목록 원본 데이터 스캔 엔진 (API 명세 완전 방어)
 const loadNews = async () => {
   try {
-    const params = activeFilter.value !== "ALL" ? { sentiment: activeFilter.value.toLowerCase() } : {};
-    const response = await fetchNewsFeed(params);
-    newsList.value = response.data || [];
+    let response = null;
+    if (typeof apiModule.fetchNewsFeed === 'function') {
+      response = await apiModule.fetchNewsFeed();
+    } else if (typeof apiModule.fetchNewsList === 'function') {
+      response = await apiModule.fetchNewsList();
+    }
+    newsList.value = response ? (response.data || []) : [];
   } catch (error) {
     console.error("API 요청 실패:", error);
   }
 };
 
-// 💡 관련 뉴스가 빠짐없이 쏟아져 나오도록 유연하게 확장한 연관어 필터 로직
-const displayNewsList = computed(() => {
-  let list = newsList.value;
+// 💡 2. 자식(NewsCard)의 가중치 판별 알고리즘을 100% 동일하게 복제
+function getNewsSentiment(item) {
+  if (item.ai_analysis?.sentiment) {
+    return item.ai_analysis.sentiment.toLowerCase().trim();
+  }
 
-  // 1. 관심 기업 필터 처리
+  const title = item.title || "";
+  const content = item.content || "";
+  const fullText = (title + " " + content).toLowerCase();
+
+  const positiveKeywords = ["상승", "돌파", "기부", "호실적", "최대", "급등", "성장", "흑자", "순항", "강세", "오름세", "인상", "수혜", "계약 체결", "도약", "유치"];
+  const negativeKeywords = ["폭락", "대폭락", "낙폭", "증발", "털썩", "곡소리", "급락", "하락", "적자", "손실", "리스크", "붕괴", "위기", "압박", "쇼크", "우려", "통보"];
+
+  let positiveScore = 0;
+  let negativeScore = 0;
+
+  positiveKeywords.forEach(kw => { if (fullText.includes(kw)) positiveScore += 1.5; });
+  negativeKeywords.forEach(kw => { if (fullText.includes(kw)) negativeScore += 1.5; });
+
+  if (positiveScore > negativeScore) return "positive";
+  if (negativeScore > positiveScore) return "negative";
+  return "neutral";
+}
+
+// 3. 💡 실시간 클라이언트 삼중 필터링 코어 (동적 반응성 축)
+const displayNewsList = computed(() => {
+  let list = [...newsList.value];
+
+  // [필터 1] 상단 관심 종목 검색바 필터링
   if (selectedStockFilter.value) {
     list = list.filter(n => {
       const matchImpact = n.related_stocks?.some(s => s.stock_name === selectedStockFilter.value);
@@ -121,30 +150,32 @@ const displayNewsList = computed(() => {
     });
   }
 
-  // 2. 🎯 사이드바 인기 테마 필터링 (연관 키워드 배열 기반 전수 매핑)
+  // [필터 2] 사이드바 인기 섹터/테마 필터링 (딕셔너리 연관어 매핑)
   if (route.query.sector) {
     const targetTheme = route.query.sector;
     const keywords = themeKeywords[targetTheme];
 
-    // 만약 정의된 연관 키워드 뭉치가 있다면 복합 검색 가동
     if (keywords && keywords.length > 0) {
       list = list.filter(n => {
         const titleLower = n.title?.toLowerCase() || "";
         const contentLower = n.content?.toLowerCase() || "";
-
-        // 등록된 연관어 중 하나라도 제목이나 본문에 들어가 있는지 체크!
         return keywords.some(keyword => {
           const kwLower = keyword.toLowerCase();
           return titleLower.includes(kwLower) || contentLower.includes(kwLower);
         });
       });
     } else {
-      // 키워드 사전이 없는 예외 상황일 때는 단순 텍스트 서칭으로 롤백 방어
       list = list.filter(n => {
         return n.title?.toLowerCase().includes(targetTheme.toLowerCase()) || 
                n.content?.toLowerCase().includes(targetTheme.toLowerCase());
       });
     }
+  }
+
+  // [필터 3] 🎯 상단 호재/악재 칩 버튼 실시간 필터링
+  if (activeFilter.value !== "ALL") {
+    const targetValue = activeFilter.value.toLowerCase();
+    list = list.filter(n => getNewsSentiment(n) === targetValue);
   }
 
   return list;
@@ -154,10 +185,7 @@ onMounted(() => {
   loadNews();
 });
 
-watch(activeFilter, () => {
-  loadNews();
-});
-
+// 테마 필터 바뀔 시 원본 갱신
 watch(() => route.query.sector, () => {
   loadNews();
 });
@@ -172,9 +200,12 @@ watch(() => route.query.sector, () => {
 .filter-chip:hover { border-color: var(--primary-border); color: var(--primary); }
 .filter-chip.active { background: var(--primary); color: #ffffff; border-color: var(--primary); font-weight: 600; }
 .list-scroll { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.list-scroll::-webkit-scrollbar { width: 4px; }
+.list-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
 .detail-side { flex: 1.3; min-width: 0; height: 100%; background: var(--bg); display: flex; flex-direction: column; }
 .select-notice { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; }
 .select-notice h3 { font-size: 16px; font-weight: 700; color: var(--text1); margin-top: 16px; }
 .select-notice p { color: var(--text3); font-size: 13px; line-height: 1.6; margin-top: 8px; }
 .notice-icon { width: 40px; height: 40px; stroke: var(--text3); stroke-width: 1.5; fill: none; }
+.empty-state { text-align: center; color: var(--text3); font-size: 13px; line-height: 1.6; }
 </style>
