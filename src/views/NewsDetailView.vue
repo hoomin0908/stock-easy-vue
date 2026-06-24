@@ -310,7 +310,11 @@ async function loadComments() {
 
   try {
     const { data } = await fetchComments(route.params.id);
-    comments.value = Array.isArray(data) ? data : [];
+    comments.value = Array.isArray(data)
+      ? [...data].sort(
+          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        )
+      : [];
   } catch (error) {
     console.error("댓글 조회 실패", error);
     commentLoadError.value = "댓글을 불러오지 못했습니다.";
