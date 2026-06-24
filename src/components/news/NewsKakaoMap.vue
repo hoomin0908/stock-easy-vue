@@ -150,10 +150,10 @@ onMounted(() => {
 <style scoped>
 .kakao-map-container { display: flex; flex-direction: column; width: 100%; height: 100%; }
 .map-header { margin-bottom: 20px; }
-.map-header-caption { margin: 6px 0 0; color: #64748b; font-size: 12px; line-height: 1.5; }
+.map-header-caption { margin: 6px 0 0; color: var(--text3); font-size: 12px; line-height: 1.5; }
 .map-header-caption strong { color: inherit; font-weight: 700; }
-.actual-map-box { flex: 1; width: 100%; min-height: 340px; border-radius: 8px; border: 1px solid #e2e8f0; background-color: #f8fafc; }
-.map-footer-info { background: #f8fafc; padding: 10px 12px; border-radius: 6px; border: 1px solid #e2e8f0; }
+.actual-map-box { flex: 1; width: 100%; min-height: 340px; border-radius: 14px; border: 1px solid var(--border); background-color: var(--cream); overflow: hidden; }
+.map-footer-info { background: var(--cream); padding: 11px 13px; border-radius: 9px; border: 1px solid var(--border); }
 .map-footer-info { margin-top: 12px; }
-.address-text { font-size: 12.5px; color: #334155; margin: 0; text-align: left; line-height: 1.4; }
+.address-text { font-size: 12.5px; color: var(--text2); margin: 0; text-align: left; line-height: 1.4; }
 </style>

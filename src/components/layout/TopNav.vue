@@ -11,11 +11,26 @@
       <router-link class="nav-tab" to="/news" active-class="active">뉴스</router-link>
       <router-link class="nav-tab" to="/watchlist" active-class="active">관심종목</router-link>
       <router-link class="nav-tab" to="/glossary" active-class="active">용어사전</router-link>
-      <router-link class="nav-tab" to="/saved" active-class="active">저장됨</router-link>
+      <router-link class="nav-tab" to="/saved" active-class="active">저장목록</router-link>
     </div>
 
     <div class="nav-right">
-      <div v-if="isAuthenticated" class="icon-btn" title="검색 (TODO: 검색 기능)">
+      <button
+        type="button"
+        class="theme-toggle-btn"
+        :title="themeMode === 'dark' ? '라이트 테마로 전환' : '다크 테마로 전환'"
+        @click="toggleTheme"
+      >
+        <svg v-if="themeMode === 'dark'" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+        </svg>
+        <svg v-else viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" />
+        </svg>
+      </button>
+
+      <div v-if="isAuthenticated" class="icon-btn" title="검색(TODO: 검색 기능)">
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
       </div>
       <div v-if="isAuthenticated" class="icon-btn" title="알림 (TODO: 알림 기능)">
@@ -38,7 +53,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, inject, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuth } from "../../services/auth";
 
@@ -46,6 +61,8 @@ const route = useRoute();
 const router = useRouter();
 const { currentUser, isAuthenticated, logout } = useAuth();
 const isLoggingOut = ref(false);
+const themeMode = inject("themeMode", ref("light"));
+const toggleTheme = inject("toggleTheme", () => {});
 
 const displayName = computed(
   () => currentUser.value?.nickname || currentUser.value?.email || "사용자"
@@ -78,64 +95,66 @@ async function handleLogout() {
 
 <style scoped>
 .top-nav {
-  height: 52px;
+  height: 68px;
   flex-shrink: 0;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  padding: 0 24px;
-  background: var(--bg);
+  padding: 0 32px;
+  background: var(--cream);
+  backdrop-filter: blur(16px);
   position: sticky;
   top: 0;
   z-index: 100;
 }
+.top-nav .logo { color: var(--text1); }
 .logo {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 17px;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 850;
   color: var(--text1);
   margin-right: 32px;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.6px;
 }
 .logo-badge {
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
-  /* 🍊 로고 아이콘 배경을 오렌지로 변경 */
-  background: var(--primary, #ff5a1f);
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--primary);
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 0 22px rgba(255, 106, 0, 0.42);
 }
 .logo-badge svg { width: 14px; height: 14px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; }
-.nav-tabs { display: flex; height: 52px; }
+.nav-tabs { display: flex; height: 68px; }
 .nav-tab {
   display: flex;
   align-items: center;
-  padding: 0 18px;
-  font-size: 14px;
+  padding: 0 20px;
+  font-size: 13.5px;
+  font-weight: 650;
   color: var(--text2);
   border-bottom: 2.5px solid transparent;
   white-space: nowrap;
   transition: all 0.15s ease;
 }
 .nav-tab:hover { color: var(--text1); }
-
-/* 🍊 활성화된 상단 탭 메뉴 텍스트 및 하단 테두리를 오렌지로 변경 */
-.nav-tab.active { 
-  color: var(--primary, #ff5a1f); 
-  border-bottom-color: var(--primary, #ff5a1f); 
-  font-weight: 600; 
+.nav-tab.active {
+  color: var(--text1);
+  border-bottom-color: var(--primary);
+  font-weight: 800;
+  text-shadow: 0 0 18px rgba(255, 106, 0, 0.3);
 }
 
 .nav-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-.icon-btn {
+.theme-toggle-btn {
   width: 36px;
   height: 36px;
   border-radius: var(--radius);
-  background: var(--bg2);
+  background: var(--cream);
   border: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -143,15 +162,28 @@ async function handleLogout() {
   cursor: pointer;
   transition: all 0.15s ease;
 }
-.icon-btn:hover { border-color: var(--primary-border); }
+.theme-toggle-btn:hover { border-color: var(--primary-border); box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06); }
+.theme-toggle-btn svg { width: 18px; height: 18px; stroke: var(--text2); stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius);
+  background: var(--cream);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.icon-btn:hover { border-color: var(--primary-border); box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06); }
 .icon-btn svg { width: 18px; height: 18px; stroke: var(--text2); stroke-width: 1.8; fill: none; stroke-linecap: round; }
 
 .avatar {
   height: 34px;
   padding: 0 12px;
   border-radius: 17px;
-  /* 🍊 유저 아바타 배경을 오렌지로 변경 */
-  background: var(--primary, #ff5a1f);
+  background: var(--primary);
   color: #fff;
   display: flex;
   align-items: center;
@@ -161,14 +193,14 @@ async function handleLogout() {
 }
 .auth-link, .logout-btn {
   border: 1px solid var(--border);
-  background: #ffffff;
+  background: var(--cream);
   color: var(--text2);
   padding: 8px 13px;
   border-radius: var(--radius);
   font-size: 12.5px;
   cursor: pointer;
 }
-.auth-link:hover, .logout-btn:hover { border-color: var(--primary-border); color: var(--primary); }
+.auth-link:hover, .logout-btn:hover { border-color: var(--primary-border); color: var(--primary); box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06); }
 .signup-link {
   background: var(--primary);
   color: #ffffff;

@@ -1,8 +1,14 @@
 <template>
   <div class="news-card" @click="goToDetail">
     <div class="card-body-layout">
-      <div v-if="news.thumbnail_url" class="news-thumb-box">
-        <img :src="news.thumbnail_url" alt="뉴스 썸네일" class="thumb-img" />
+      <div class="news-thumb-box">
+        <img
+          :src="thumbnailSrc"
+          alt="뉴스 썸네일"
+          class="thumb-img"
+          :class="{ 'is-placeholder': usesPlaceholder }"
+          @error="handleThumbnailError"
+        />
       </div>
 
       <div class="news-text-content">
@@ -41,8 +47,9 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import newsPlaceholder from "../../assets/images/news-placeholder.png";
 
 const props = defineProps({
   news: {
@@ -53,6 +60,19 @@ const props = defineProps({
 
 const router = useRouter();
 const route = useRoute();
+const thumbnailFailed = ref(false);
+
+const thumbnailSrc = computed(() => props.news.thumbnail_url || newsPlaceholder);
+const usesPlaceholder = computed(
+  () => !props.news.thumbnail_url || thumbnailFailed.value
+);
+
+function handleThumbnailError(event) {
+  thumbnailFailed.value = true;
+  if (event.currentTarget.src !== newsPlaceholder) {
+    event.currentTarget.src = newsPlaceholder;
+  }
+}
 
 // 실시간 프론트엔드 자체 컨텍스트 감정 분류 가중치 알고리즘
 const calculatedSentiment = computed(() => {
@@ -118,15 +138,16 @@ const formattedTime = computed(() => {
 
 <style scoped>
 .news-card {
-  background: #ffffff; border: 1px solid var(--border, #e2e8f0);
-  border-radius: var(--radius, 14px); padding: 18px;
-  transition: all 0.2s ease; cursor: pointer;
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 16px; padding: 18px;
+  transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease; cursor: pointer;
   container-type: inline-size;
 }
-.news-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05); border-color: var(--border-hover, #cbd5e1); }
-.news-card.active { border-color: var(--primary, #ff5a1f); background: var(--primary-bg, #fff5f1); }
+.news-card:hover { transform: translateY(-4px); box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08); border-color: #c9d3dd; }
+.news-card.active { border-color: var(--primary); background: var(--primary-bg); box-shadow: inset 0 0 0 1px rgba(255,106,0,.12), 0 0 28px rgba(255,106,0,.08); }
 
-.card-body-layout { display: flex; gap: 20px; align-items: flex-start; }
+.card-body-layout { display: flex; gap: 20px; align-items: stretch; }
 
 .news-thumb-box {
   width: clamp(88px, 28cqw, 168px);
@@ -135,33 +156,35 @@ const formattedTime = computed(() => {
   border-radius: 8px;
   overflow: hidden;
   flex-shrink: 0;
-  border: 1px solid var(--border, #e2e8f0);
+  border: 1px solid var(--border);
   transition: width 0.18s ease;
 }
 .thumb-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
+.thumb-img.is-placeholder { transform: scale(1.35); }
 .news-card:hover .thumb-img { transform: scale(1.04); }
+.news-card:hover .thumb-img.is-placeholder { transform: scale(1.42); }
 
-.news-text-content { flex: 1; min-width: 0; text-align: left; }
+.news-text-content { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; text-align: left; }
 
-.news-top-row { display: flex; align-items: center; font-size: clamp(11.5px, 1.6cqw, 13.5px); color: var(--text3, #64748b); margin-bottom: 10px; }
-.meta-divider { margin: 0 8px; color: var(--border, #e2e8f0); }
+.news-top-row { display: flex; align-items: center; font-size: clamp(11.5px, 1.6cqw, 13.5px); color: var(--text3); margin-bottom: 10px; }
+.meta-divider { margin: 0 8px; color: var(--border); }
 
 .sentiment-badge { padding: 3px 9px; border-radius: 4px; font-size: clamp(10.5px, 1.45cqw, 12.5px); font-weight: 700; letter-spacing: -0.2px; }
-.sentiment-badge.up { background: #e8f5e9; color: #2e7d32; }
-.sentiment-badge.down { background: #ffebee; color: #c62828; }
-.sentiment-badge.neutral { background: #f1f5f9; color: #475569; }
+.sentiment-badge.up { background: var(--signal-up-bg, #fef2f2); color: var(--signal-up, #dc2626); }
+.sentiment-badge.down { background: var(--signal-down-bg, #eff6ff); color: var(--signal-down, #2563eb); }
+.sentiment-badge.neutral { background: var(--signal-neutral-bg, #f1f5f9); color: var(--signal-neutral, #64748b); }
 
-.publisher-txt { font-weight: 600; color: var(--text2, #475569); }
+.publisher-txt { font-weight: 650; color: var(--text2); }
 
-.news-title-link { font-size: clamp(14.5px, 2.2cqw, 19px); font-weight: 700; color: var(--text1, #1e293b); line-height: 1.5; margin-bottom: 8px; letter-spacing: -0.3px; }
+.news-title-link { font-size: clamp(15px, 2.2cqw, 20px); font-weight: 800; color: var(--text1); line-height: 1.45; margin-bottom: 8px; letter-spacing: -0.4px; }
 .news-card:hover .news-title-link { color: var(--primary, #ff5a1f); }
 
 .news-author-row { display: flex; align-items: center; flex-wrap: wrap; margin-top: 6px; }
-.news-author-txt { font-size: clamp(11.5px, 1.6cqw, 13.5px); color: var(--text3, #64748b); font-weight: 500; }
-.inline-divider { font-size: 11px; margin: 0 8px; color: var(--border, #cbd5e1); }
+.news-author-txt { font-size: clamp(11.5px, 1.6cqw, 13.5px); color: var(--text3); font-weight: 500; }
+.inline-divider { font-size: 11px; margin: 0 8px; color: var(--border); }
 
 .origin-link-btn { display: inline-flex; align-items: center; gap: 4px; font-size: clamp(11.5px, 1.6cqw, 13.5px); color: var(--text3, #94a3b8); text-decoration: none; transition: color 0.15s ease; font-weight: 500; }
-.origin-link-btn:hover { color: var(--text1, #1e293b); }
+.origin-link-btn:hover { color: var(--primary); }
 .link-icon { width: 13px; height: 13px; stroke: currentColor; stroke-width: 2; fill: none; }
 
 @container (max-width: 390px) {

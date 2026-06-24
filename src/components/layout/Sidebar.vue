@@ -55,25 +55,23 @@
               아직 등록한 관심 기업이 없습니다.
             </div>
 
-            <div v-else class="stock-list-wrapper">
+            <div v-else class="sector-grid-layout">
               <div
                 v-for="interest in interestStocks"
                 :key="interest.id"
-                class="company-list-card"
+                class="interest-sector-row"
                 :class="{
-                  'filter-active':
+                  active:
                     String(route.query.stockId) === String(interest.stock.id)
                 }"
               >
                 <button
                   type="button"
-                  class="company-card-main"
+                  class="luxury-sector-chip interest-sector-chip"
                   @click="selectInterestStock(interest)"
                 >
-                  <span class="company-card-info">
-                    <strong>{{ interest.stock.stock_name }}</strong>
-                    <small>{{ interest.stock.stock_code }}</small>
-                  </span>
+                  <strong>{{ interest.stock.stock_name }}</strong>
+                  <small>{{ interest.stock.stock_code }}</small>
                 </button>
 
                 <button
@@ -522,7 +520,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.sidebar { width: 250px; flex-shrink: 0; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 12px 0 0; transition: width 0.25s ease; background: var(--bg); overflow: visible; position: relative; }
+.sidebar { width: 250px; flex-shrink: 0; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 18px 0 0; transition: width 0.25s ease; background: var(--cream); overflow: visible; position: relative; }
 .sidebar.resizing { transition: none; }
 .sidebar.collapsed { width: 68px; }
 .sidebar-resizer { position: absolute; top: 0; right: -5px; bottom: 0; z-index: 20; width: 10px; cursor: col-resize; touch-action: none; }
@@ -530,13 +528,13 @@ onBeforeUnmount(() => {
 .sidebar-resizer span { position: absolute; top: 50%; left: 2px; width: 6px; height: 44px; transform: translateY(-50%); border-radius: 4px; background: #cbd5e1; opacity: 0; transition: opacity 0.15s ease, background 0.15s ease; }
 .sidebar-resizer:hover::before, .sidebar.resizing .sidebar-resizer::before { background: var(--primary, #ff5a1f); }
 .sidebar-resizer:hover span, .sidebar.resizing .sidebar-resizer span { opacity: 1; background: var(--primary, #ff5a1f); }
-.toggle-btn { width: 34px; height: 34px; margin: 0 0 14px 16px; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 8px; color: var(--text3); transition: all 0.2s ease; }
+.toggle-btn { width: 34px; height: 34px; margin: 0 0 14px 16px; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 8px; color: var(--text2); transition: all 0.2s ease; }
 .toggle-btn:hover { background: var(--bg2); color: var(--text1); }
 .toggle-btn svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.8; fill: none; transition: transform 0.25s ease; }
 .section-nav { display: flex; flex-direction: column; gap: 4px; padding: 0 12px; }
 .section-btn { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: none; background: transparent; border-radius: var(--radius); cursor: pointer; color: var(--text2); font-size: 13.5px; white-space: nowrap; overflow: hidden; transition: all 0.2s ease; }
 .section-btn:hover { background: var(--bg2); color: var(--text1); }
-.section-btn.active { background: var(--primary-bg, #fff5f1); color: var(--primary, #ff5a1f); font-weight: 600; }
+.section-btn.active { background: linear-gradient(90deg, rgba(255,106,0,.12), rgba(255,106,0,.03)); color: var(--primary); font-weight: 750; box-shadow: inset 3px 0 0 var(--primary); }
 .section-btn svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.8; fill: none; flex-shrink: 0; }
 .section-label { overflow: hidden; text-overflow: ellipsis; }
 .section-content { flex: 1; overflow-y: auto; padding: 16px 16px 0; margin-top: 4px; border-top: 1px solid var(--border); display: flex; flex-direction: column; }
@@ -554,13 +552,31 @@ onBeforeUnmount(() => {
 .interest-heading h3 { color: var(--text1); font-size: 12.5px; font-weight: 700; }
 .compact-state { padding: 16px 10px; border-radius: var(--radius); background: var(--bg2); color: var(--text3); font-size: 11px; line-height: 1.5; text-align: center; }
 .stock-list-wrapper { display: flex; flex-direction: column; gap: 6px; }
-.company-list-card { min-height: 48px; display: flex; align-items: center; gap: 8px; padding: 8px 9px 8px 11px; border: 1px solid var(--border); border-radius: var(--radius); background: #fff; transition: all 0.2s ease; }
-.company-list-card:hover { border-color: var(--primary-border); background: var(--primary-bg); }
+
+.stock-item-card { display: flex; align-items: center; gap: 12px; padding: 11px; border-radius: 10px; border: 1px solid var(--border); cursor: pointer; position: relative; transition: all 0.2s ease; background: var(--cream); }
+.stock-item-card:hover { background: var(--bg2); border-color: #c7d1da; transform: translateX(2px); }
+.stock-item-card.filter-active { background: var(--primary-bg); border-color: var(--primary-border); }
+.stock-avatar-badge { width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0; background: #fff4ea; border: 1px solid #ffd0a7; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: var(--primary); }
+.stock-meta-info { flex: 1; min-width: 0; text-align: left; }
+.stock-title-name { font-size: 13px; font-weight: 700; color: var(--text1); }
+.stock-price-tag { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.active-indicator-dot { width: 6px; height: 6px; background: var(--primary); border-radius: 50%; position: absolute; right: 12px; top: calc(50% - 3px); }
+
+.company-list-card { min-height: 42px; display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 12px; border: 1px solid transparent; border-radius: var(--radius); background: transparent; transition: all 0.15s ease; }
+.company-list-card:hover { background: var(--bg2); }
 .company-list-card.filter-active { border-color: var(--primary); background: var(--primary-bg); }
 .company-card-main { flex: 1; min-width: 0; align-self: stretch; display: flex; align-items: center; padding: 0; border: none; background: transparent; cursor: pointer; font: inherit; }
 .company-card-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; text-align: left; }
-.company-card-info strong { overflow: hidden; color: var(--text1); font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.company-card-info strong { overflow: hidden; color: var(--text2); font-size: 12.5px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
 .company-card-info small { color: var(--text3); font-size: 10.5px; line-height: 1; }
+.interest-sector-row { display: flex; align-items: center; gap: 6px; border-radius: var(--radius); transition: background 0.15s ease; }
+.interest-sector-row:hover { background: var(--bg2); }
+.interest-sector-row.active { background: var(--primary-bg); }
+.interest-sector-row.active .luxury-sector-chip { color: var(--primary); border-color: var(--primary-border); font-weight: 600; }
+.interest-sector-chip { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.interest-sector-chip strong { max-width: 100%; overflow: hidden; color: inherit; font-size: inherit; font-weight: inherit; text-overflow: ellipsis; white-space: nowrap; }
+.interest-sector-chip small { color: var(--text3); font-size: 10.5px; line-height: 1.2; }
+.interest-sector-row.active .interest-sector-chip small { color: var(--primary); opacity: 0.74; }
 .heart-btn { width: 30px; height: 30px; flex-shrink: 0; display: grid; place-items: center; padding: 0; border: none; border-radius: 50%; background: transparent; color: #cbd5e1; cursor: pointer; transition: all 0.15s ease; }
 .heart-btn:hover { background: #fff1f2; color: #fb7185; }
 .heart-btn svg { width: 17px; height: 17px; fill: transparent; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
@@ -579,15 +595,16 @@ onBeforeUnmount(() => {
 .company-search-results::-webkit-scrollbar { width: 4px; }
 .company-search-results::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
 .add-btn { display: flex; align-items: center; gap: 6px; padding: 10px; font-size: 12.5px; color: var(--text3); border: 1px dashed var(--border); border-radius: var(--radius); margin-top: 12px; cursor: pointer; justify-content: center; transition: all 0.15s ease; background: #fff; }
+
 .add-btn:hover { border-color: var(--primary-border); color: var(--primary); background: var(--primary-bg); }
 .search-input-container { position: relative; margin-bottom: 14px; display: flex; align-items: center; }
 .search-lens { position: absolute; left: 10px; width: 14px; height: 14px; stroke: var(--text3); stroke-width: 2; fill: none; }
-.premium-sector-input { width: 100%; padding: 8px 12px 8px 32px; border-radius: var(--radius); border: 1px solid var(--border); font-size: 12.5px; background: var(--bg2); transition: all 0.2s ease; }
-.premium-sector-input:focus { outline: none; border-color: var(--primary); background: #ffffff; box-shadow: 0 0 0 3px rgba(255, 90, 31, 0.08); }
+.premium-sector-input { width: 100%; padding: 9px 12px 9px 32px; border-radius: 9px; border: 1px solid var(--border); font-size: 12.5px; background: var(--cream); color: var(--text1); transition: all 0.2s ease; }
+.premium-sector-input:focus { outline: none; border-color: var(--primary); background: var(--cream); box-shadow: 0 0 0 3px rgba(255, 90, 31, 0.08); }
 .sector-grid-layout { display: flex; flex-direction: column; gap: 4px; text-align: left; }
-.luxury-sector-chip { padding: 9px 12px; border-radius: var(--radius); font-size: 12.5px; border: 1px solid transparent; color: var(--text2); cursor: pointer; transition: all 0.15s ease; }
+.luxury-sector-chip { width: 100%; padding: 9px 12px; border-radius: var(--radius); border: 1px solid transparent; background: transparent; color: var(--text2); cursor: pointer; font: inherit; font-size: 12.5px; text-align: left; transition: all 0.15s ease; }
 .luxury-sector-chip:hover { background: var(--bg2); color: var(--text1); }
-.luxury-sector-chip.active { background: var(--primary); color: #ffffff; font-weight: 600; }
+.luxury-sector-chip.active { background: var(--primary-bg); color: var(--primary); border-color: var(--primary-border); font-weight: 600; }
 .sidebar-footer { border-top: 1px solid var(--border); padding: 14px 12px; margin-top: auto; }
 .user-row-card { display: flex; align-items: center; gap: 10px; }
 .user-avatar-circle { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; background: var(--primary); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(255, 90, 31, 0.2); }
