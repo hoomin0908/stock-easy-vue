@@ -41,3 +41,23 @@ export function fetchSavedTerms() {
   // TODO: 팀원 API 연동
   return api.get("/accounts/saved-terms/");
 }
+
+// GET /api/v1/comments/news/:newsId/ → 뉴스별 댓글 조회
+export function fetchComments(newsId) {
+  return api.get(`/comments/news/${newsId}/`);
+}
+
+// POST /api/v1/comments/news/:newsId/create/ → 댓글 작성
+export function createComment(newsId, content) {
+  return api.post(`/comments/news/${newsId}/create/`, { content });
+}
+
+// PATCH /api/v1/comments/:commentId/ → 댓글 수정
+export function updateComment(commentId, content) {
+  return api.patch(`/comments/${commentId}/`, { content });
+}
+
+// DELETE /api/v1/comments/:commentId/ → 댓글 삭제
+export function deleteComment(commentId) {
+  return api.delete(`/comments/${commentId}/`);
+}

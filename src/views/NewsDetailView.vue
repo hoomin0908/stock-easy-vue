@@ -119,20 +119,101 @@
               </div>
               <div class="community-chat-container">
                 <div class="chat-scroller">
-                  <div class="msg received">
-                    <span class="chat-user">익명_거상</span>
-                    <p class="msg-txt">이번 AI 분석 스코어 점수대 높게 나왔는데, 장기 모멘텀 유효할까요?</p>
-                    <span class="chat-time">오후 4:21</span>
+                  <div v-if="isCommentsLoading" class="comment-state">
+                    댓글을 불러오는 중입니다...
                   </div>
-                  <div class="msg sent">
-                    <span class="chat-user">나 (주주)</span>
-                    <p class="msg-txt">체크포인트 요인들 보면서 분할로 대응하는 게 안전해 보입니다.</p>
-                    <span class="chat-time">오후 4:24</span>
+
+                  <div v-else-if="commentLoadError" class="comment-state error">
+                    <p>{{ commentLoadError }}</p>
+                    <button type="button" @click="loadComments">다시 시도</button>
                   </div>
+
+                  <div v-else-if="comments.length === 0" class="comment-state">
+                    아직 댓글이 없습니다. 첫 의견을 남겨보세요.
+                  </div>
+
+                  <template v-else>
+                    <div
+                      v-for="comment in comments"
+                      :key="comment.id"
+                      class="msg"
+                      :class="{ sent: isMyComment(comment), received: !isMyComment(comment) }"
+                    >
+                      <div class="comment-header">
+                        <span class="chat-user">{{ comment.user?.nickname || "사용자" }}</span>
+
+                        <div v-if="isMyComment(comment)" class="comment-actions">
+                          <button type="button" @click="startEditing(comment)">수정</button>
+                          <button
+                            type="button"
+                            :disabled="deletingCommentId === comment.id"
+                            @click="handleDelete(comment)"
+                          >
+                            {{ deletingCommentId === comment.id ? "삭제 중" : "삭제" }}
+                          </button>
+                        </div>
+                      </div>
+
+                      <template v-if="editingCommentId === comment.id">
+                        <textarea
+                          v-model="editingContent"
+                          class="comment-edit-input"
+                          maxlength="500"
+                          rows="3"
+                        ></textarea>
+                        <div class="edit-actions">
+                          <button type="button" @click="cancelEditing">취소</button>
+                          <button
+                            type="button"
+                            :disabled="isUpdating || !editingContent.trim()"
+                            @click="handleUpdate(comment.id)"
+                          >
+                            {{ isUpdating ? "저장 중..." : "저장" }}
+                          </button>
+                        </div>
+                      </template>
+
+                      <p v-else class="msg-txt">{{ comment.content }}</p>
+
+                      <span class="chat-time">
+                        {{ formatCommentTime(comment.created_at) }}
+                        <template v-if="isEdited(comment)"> · 수정됨</template>
+                      </span>
+                    </div>
+                  </template>
                 </div>
-                <div class="chat-footer-input-row">
-                  <input type="text" placeholder="성숙한 투자 견해를 공유해 주세요..." class="chat-input" />
-                  <button class="chat-send-btn">전송</button>
+
+                <p v-if="commentMutationError" class="comment-error">
+                  {{ commentMutationError }}
+                </p>
+
+                <div v-if="isAuthenticated" class="chat-footer-input-row">
+                  <input
+                    v-model="commentContent"
+                    type="text"
+                    maxlength="500"
+                    placeholder="성숙한 투자 견해를 공유해 주세요..."
+                    class="chat-input"
+                    :disabled="isCreating"
+                    @keyup.enter="handleCreate"
+                  />
+                  <button
+                    type="button"
+                    class="chat-send-btn"
+                    :disabled="isCreating || !commentContent.trim()"
+                    @click="handleCreate"
+                  >
+                    {{ isCreating ? "전송 중" : "전송" }}
+                  </button>
+                </div>
+
+                <div v-else class="comment-login-notice">
+                  <router-link
+                    :to="{ path: '/login', query: { redirect: route.fullPath } }"
+                  >
+                    로그인
+                  </router-link>
+                  후 댓글을 작성할 수 있습니다.
                 </div>
               </div>
             </div>
@@ -184,14 +265,32 @@
 <script setup>
 import { ref, computed, onMounted, watch, inject } from "vue";
 import { useRoute } from "vue-router";
-import { fetchNewsDetail } from "../services/api";
+import {
+  fetchNewsDetail,
+  fetchComments,
+  createComment,
+  updateComment,
+  deleteComment,
+} from "../services/api";
+import { useAuth } from "../services/auth";
 
 import NewsYoutubeFeed from "../components/news/NewsYoutubeFeed.vue";
 import NewsKakaoMap from "../components/news/NewsKakaoMap.vue";
 
 const route = useRoute();
+const { currentUser, isAuthenticated } = useAuth();
 const news = ref(null);
 const isLoading = ref(false);
+const comments = ref([]);
+const commentContent = ref("");
+const editingCommentId = ref(null);
+const editingContent = ref("");
+const isCommentsLoading = ref(false);
+const isCreating = ref(false);
+const isUpdating = ref(false);
+const deletingCommentId = ref(null);
+const commentLoadError = ref("");
+const commentMutationError = ref("");
 
 const toggleWatchlist = inject("toggleWatchlist");
 const isWatched = inject("isWatched");
@@ -202,6 +301,127 @@ const tabs = [
   { id: "map", label: "📍 카카오맵" },
   { id: "community", label: "💬 실시간 토론" }
 ];
+
+async function loadComments() {
+  if (!route.params.id) return;
+
+  isCommentsLoading.value = true;
+  commentLoadError.value = "";
+
+  try {
+    const { data } = await fetchComments(route.params.id);
+    comments.value = Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.error("댓글 조회 실패", error);
+    commentLoadError.value = "댓글을 불러오지 못했습니다.";
+  } finally {
+    isCommentsLoading.value = false;
+  }
+}
+
+async function handleCreate() {
+  const content = commentContent.value.trim();
+  if (!content || !isAuthenticated.value || isCreating.value) return;
+
+  isCreating.value = true;
+  commentMutationError.value = "";
+
+  try {
+    await createComment(route.params.id, content);
+    commentContent.value = "";
+    await loadComments();
+  } catch (error) {
+    commentMutationError.value = getCommentError(
+      error,
+      "댓글을 등록하지 못했습니다."
+    );
+  } finally {
+    isCreating.value = false;
+  }
+}
+
+function startEditing(comment) {
+  editingCommentId.value = comment.id;
+  editingContent.value = comment.content;
+  commentMutationError.value = "";
+}
+
+function cancelEditing() {
+  editingCommentId.value = null;
+  editingContent.value = "";
+}
+
+async function handleUpdate(commentId) {
+  const content = editingContent.value.trim();
+  if (!content || isUpdating.value) return;
+
+  isUpdating.value = true;
+  commentMutationError.value = "";
+
+  try {
+    await updateComment(commentId, content);
+    cancelEditing();
+    await loadComments();
+  } catch (error) {
+    commentMutationError.value = getCommentError(
+      error,
+      "댓글을 수정하지 못했습니다."
+    );
+  } finally {
+    isUpdating.value = false;
+  }
+}
+
+async function handleDelete(comment) {
+  if (!window.confirm("댓글을 삭제하시겠습니까?")) return;
+
+  deletingCommentId.value = comment.id;
+  commentMutationError.value = "";
+
+  try {
+    await deleteComment(comment.id);
+    if (editingCommentId.value === comment.id) cancelEditing();
+    await loadComments();
+  } catch (error) {
+    commentMutationError.value = getCommentError(
+      error,
+      "댓글을 삭제하지 못했습니다."
+    );
+  } finally {
+    deletingCommentId.value = null;
+  }
+}
+
+function isMyComment(comment) {
+  return currentUser.value?.id === comment.user?.id;
+}
+
+function isEdited(comment) {
+  return Boolean(
+    comment.created_at &&
+    comment.updated_at &&
+    comment.created_at !== comment.updated_at
+  );
+}
+
+function formatCommentTime(value) {
+  if (!value) return "";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function getCommentError(error, fallback) {
+  const data = error.response?.data;
+  return data?.detail || data?.content?.[0] || fallback;
+}
 
 async function loadDetail() {
   if (!route.params.id) return;
@@ -217,8 +437,18 @@ async function loadDetail() {
   }
 }
 
-onMounted(loadDetail);
-watch(() => route.params.id, loadDetail);
+onMounted(() => {
+  loadDetail();
+  loadComments();
+});
+
+watch(() => route.params.id, () => {
+  cancelEditing();
+  commentContent.value = "";
+  commentMutationError.value = "";
+  loadDetail();
+  loadComments();
+});
 
 const analysis = computed(() => news.value?.ai_analysis);
 
@@ -306,17 +536,33 @@ const targetCompanyName = computed(() => {
 .empty-pane-box { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 12.5px; color: var(--text3, #64748b); border: 1px dashed var(--border, #e2e8f0); border-radius: 8px; }
 .community-chat-container { flex: 1; display: flex; flex-direction: column; justify-content: space-between; min-height: 300px; }
 .chat-scroller { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; max-height: 260px; overflow-y: auto; }
+.comment-state { margin: auto; padding: 48px 12px; color: var(--text3, #94a3b8); font-size: 12.5px; text-align: center; }
+.comment-state.error { color: #dc2626; }
+.comment-state button { margin-top: 8px; padding: 6px 10px; border: 1px solid var(--border, #e2e8f0); border-radius: 6px; background: #ffffff; color: var(--text2, #475569); cursor: pointer; }
 .msg { display: flex; flex-direction: column; max-width: 85%; padding: 10px; border-radius: 8px; font-size: 12.5px; line-height: 1.45; }
 .msg.received { background: var(--bg2, #f8fafc); border: 1px solid var(--border, #e2e8f0); align-self: flex-start; border-top-left-radius: 0; }
 .msg.sent { background: var(--primary-bg, #fff5f1); border: 1px solid var(--primary-border, #ffe2d5); align-self: flex-end; border-top-right-radius: 0; }
+.comment-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.comment-actions { display: flex; gap: 6px; }
+.comment-actions button, .edit-actions button { border: none; background: transparent; color: var(--text3, #94a3b8); font-size: 10.5px; cursor: pointer; }
+.comment-actions button:hover, .edit-actions button:hover { color: var(--primary, #ff5a1f); }
+.comment-actions button:disabled, .edit-actions button:disabled { opacity: 0.45; cursor: not-allowed; }
 .chat-user { font-size: 11px; font-weight: 700; color: var(--text3, #64748b); margin-bottom: 2px; }
 .msg.sent .chat-user { color: var(--primary, #ff5a1f); }
-.msg-txt { margin: 0; color: var(--text1, #1e293b); }
+.msg-txt { margin: 4px 0 0; color: var(--text1, #1e293b); white-space: pre-wrap; overflow-wrap: anywhere; }
 .chat-time { font-size: 10px; color: var(--text3, #94a3b8); align-self: flex-end; margin-top: 4px; }
+.comment-edit-input { width: 100%; margin-top: 6px; padding: 8px 10px; resize: vertical; border: 1px solid var(--primary-border, #ffe2d5); border-radius: 6px; outline: none; font: inherit; line-height: 1.45; }
+.comment-edit-input:focus { border-color: var(--primary, #ff5a1f); }
+.edit-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+.edit-actions button:last-child { color: var(--primary, #ff5a1f); font-weight: 700; }
+.comment-error { margin-bottom: 8px; color: #dc2626; font-size: 11.5px; }
 .chat-footer-input-row { display: flex; gap: 8px; border-top: 1px solid var(--border, #e2e8f0); padding-top: 12px; }
 .chat-input { flex: 1; background: var(--bg2, #f8fafc); border: 1px solid var(--border, #e2e8f0); border-radius: 6px; padding: 8px 12px; font-size: 12.5px; outline: none; }
 .chat-input:focus { border-color: var(--primary, #ff5a1f); background: #ffffff; }
 .chat-send-btn { background: var(--primary, #ff5a1f); color: #ffffff; border: none; padding: 0 14px; font-size: 12.5px; font-weight: 700; border-radius: 6px; cursor: pointer; }
+.chat-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.comment-login-notice { border-top: 1px solid var(--border, #e2e8f0); padding-top: 14px; color: var(--text3, #94a3b8); font-size: 12.5px; text-align: center; }
+.comment-login-notice a { color: var(--primary, #ff5a1f); font-weight: 700; }
 .dashboard-lower-analysis { margin-top: 32px; padding-top: 24px; border-top: 1px dashed var(--border, #e2e8f0); }
 .lower-section-title { font-size: 17px; font-weight: 800; color: var(--text1, #1e293b); margin-bottom: 20px; border-left: 4px solid var(--primary, #ff5a1f); padding-left: 10px; }
 .ai-analysis-grid { display: flex; gap: 20px; }
