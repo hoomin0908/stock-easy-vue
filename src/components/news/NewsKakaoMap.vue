@@ -1,12 +1,12 @@
 <template>
   <div class="kakao-map-container">
     <div class="map-header">
-      <span class="map-icon">📍</span>
-      <h3>기업 본사 주소/위치 안내</h3>
+      <p class="map-header-caption">
+        '<strong>{{ companyName }}</strong>' 기업 본사 주소/위치 안내
+      </p>
     </div>
     
     <div id="kakao-space-map" class="actual-map-box"></div>
-    
     <div class="map-footer-info" v-if="currentAddress">
       <p class="address-text"><strong>검색된 위치:</strong> {{ currentAddress }}</p>
     </div>
@@ -148,11 +148,12 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.kakao-map-container { display: flex; flex-direction: column; gap: 12px; width: 100%; }
-.map-header { display: flex; align-items: center; gap: 6px; }
-.map-header h3 { font-size: 13.5px; font-weight: 700; color: #475569; margin: 0; }
-.map-icon { font-size: 14px; }
-.actual-map-box { width: 100%; height: 280px; border-radius: 8px; border: 1px solid #e2e8f0; background-color: #f8fafc; }
+.kakao-map-container { display: flex; flex-direction: column; width: 100%; height: 100%; }
+.map-header { margin-bottom: 20px; }
+.map-header-caption { margin: 6px 0 0; color: #64748b; font-size: 12px; line-height: 1.5; }
+.map-header-caption strong { color: inherit; font-weight: 700; }
+.actual-map-box { flex: 1; width: 100%; min-height: 340px; border-radius: 8px; border: 1px solid #e2e8f0; background-color: #f8fafc; }
 .map-footer-info { background: #f8fafc; padding: 10px 12px; border-radius: 6px; border: 1px solid #e2e8f0; }
+.map-footer-info { margin-top: 12px; }
 .address-text { font-size: 12.5px; color: #334155; margin: 0; text-align: left; line-height: 1.4; }
 </style>

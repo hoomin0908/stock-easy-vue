@@ -2,8 +2,6 @@
   <div class="youtube-feed-container">
     <div class="feed-header">
       <div class="header-title">
-        <span class="youtube-icon">🔴</span>
-        <h3>관련 기업 YouTube 분석 영상</h3>
       </div>
       <p class="header-caption" v-if="companyName && companyName !== '해당 기업'">
         '<strong>{{ companyName }}</strong>' 관련 최신 시장 브리핑입니다.
@@ -16,7 +14,15 @@
     </div>
 
     <div v-else-if="videos.length === 0" class="feed-state-box empty">
-      <p class="no-data-text">관련 영상을 찾지 못했습니다.</p>
+      <p class="no-data-text">{{ errorMessage || "관련 영상을 찾지 못했습니다." }}</p>
+      <button
+        v-if="errorMessage"
+        type="button"
+        class="retry-btn"
+        @click="loadComponentData"
+      >
+        다시 시도
+      </button>
     </div>
 
     <div v-else class="video-grid">
@@ -50,28 +56,69 @@ const props = defineProps({
 
 const videos = ref([]);
 const isLoading = ref(false);
+const errorMessage = ref("");
 
 async function fetchYoutubeVideos(query) {
   const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
   const url = `https://www.googleapis.com/youtube/v3/search`;
+
+  if (!API_KEY) {
+    throw new Error("YOUTUBE_API_KEY_MISSING");
+  }
+
   try {
     const response = await axios.get(url, {
       params: { key: API_KEY, q: query, part: "snippet", type: "video", maxResults: 3, regionCode: "KR", safeSearch: "moderate" }
     });
     return response.data.items || [];
-  } catch (err) { return []; }
+  } catch (err) {
+    const status = err.response?.status;
+    const reason = err.response?.data?.error?.errors?.[0]?.reason;
+
+    if (
+      status === 429 ||
+      reason === "quotaExceeded" ||
+      reason === "dailyLimitExceeded" ||
+      reason === "rateLimitExceeded"
+    ) {
+      throw new Error("YOUTUBE_QUOTA_EXCEEDED");
+    }
+
+    if (status === 400 || status === 403) {
+      throw new Error("YOUTUBE_API_KEY_INVALID");
+    }
+
+    throw new Error("YOUTUBE_REQUEST_FAILED");
+  }
 }
 
 async function loadComponentData() {
   if (!props.companyName || props.companyName === "해당 기업") { videos.value = []; return; }
   isLoading.value = true;
-  
-  let result = await fetchYoutubeVideos(`${props.companyName} 주식 분석`);
-  if (result.length === 0) result = await fetchYoutubeVideos(`${props.companyName} 전망`);
-  if (result.length === 0) result = await fetchYoutubeVideos(`${props.companyName} 뉴스`);
-  
-  videos.value = result;
-  isLoading.value = false;
+  errorMessage.value = "";
+
+  try {
+    let result = await fetchYoutubeVideos(`${props.companyName} 주식 분석`);
+    if (result.length === 0) result = await fetchYoutubeVideos(`${props.companyName} 전망`);
+    if (result.length === 0) result = await fetchYoutubeVideos(`${props.companyName} 뉴스`);
+
+    videos.value = result;
+  } catch (error) {
+    videos.value = [];
+
+    if (error.message === "YOUTUBE_QUOTA_EXCEEDED") {
+      errorMessage.value =
+        "YouTube API 요청 한도가 부족하거나 일시적으로 제한되었습니다. 잠시 후 다시 시도해 주세요.";
+    } else if (error.message === "YOUTUBE_API_KEY_MISSING") {
+      errorMessage.value = "YouTube API 키가 설정되지 않았습니다.";
+    } else if (error.message === "YOUTUBE_API_KEY_INVALID") {
+      errorMessage.value = "YouTube API 키 또는 API 사용 설정을 확인해 주세요.";
+    } else {
+      errorMessage.value = "YouTube 영상을 불러오지 못했습니다. 네트워크 상태를 확인해 주세요.";
+    }
+  } finally {
+    isLoading.value = false;
+  }
 }
 
 watch(() => props.companyName, loadComponentData);
@@ -112,7 +159,18 @@ onMounted(loadComponentData);
   .video-card { flex: 1 1 calc(33.33% - 14px); max-width: calc(33.33% - 14px); }
 }
 
-.feed-state-box { display: flex; flex-direction: column; align-items: center; padding: 40px; }
+.feed-state-box {
+  flex: 1;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+.no-data-text { max-width: 360px; margin: 0; color: #64748b; font-size: 13px; line-height: 1.6; text-align: center; }
+.retry-btn { margin-top: 14px; padding: 8px 14px; border: 1px solid #fdba74; border-radius: 7px; background: #fff7ed; color: #c2410c; font-size: 12px; font-weight: 700; cursor: pointer; }
+.retry-btn:hover { background: #ffedd5; }
 .loading-spinner {
   width: 24px; height: 24px; border: 3px solid #f1f5f9; border-top: 3px solid #ef4444;
   border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 12px;

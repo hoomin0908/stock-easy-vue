@@ -1,5 +1,9 @@
 <template>
-  <aside class="sidebar" :class="{ collapsed: !isOpen }">
+  <aside
+    class="sidebar"
+    :class="{ collapsed: !isOpen, resizing: isResizing }"
+    :style="isOpen ? { width: `${sidebarWidth}px` } : undefined"
+  >
     <button class="toggle-btn" :title="isOpen ? '사이드바 닫기' : '사이드바 열기'" @click="isOpen = !isOpen">
       <svg viewBox="0 0 24 24" :style="{ transform: isOpen ? 'none' : 'rotate(180deg)' }">
         <rect x="3" y="4" width="18" height="16" rx="2" />
@@ -220,6 +224,17 @@
         </button>
       </div>
     </div>
+
+    <div
+      v-if="isOpen"
+      class="sidebar-resizer"
+      role="separator"
+      aria-label="사이드바 너비 조절"
+      aria-orientation="vertical"
+      @pointerdown="startResize"
+    >
+      <span></span>
+    </div>
   </aside>
 </template>
 
@@ -238,6 +253,8 @@ import {
 const route = useRoute();
 const router = useRouter();
 const isOpen = ref(true);
+const sidebarWidth = ref(250);
+const isResizing = ref(false);
 const activeSection = ref("watchlist");
 const themeSearch = ref("");
 const { currentUser, isAuthenticated } = useAuth();
@@ -505,8 +522,14 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.sidebar { width: 250px; flex-shrink: 0; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 12px 0 0; transition: width 0.25s ease; background: var(--bg); overflow: hidden; }
+.sidebar { width: 250px; flex-shrink: 0; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 12px 0 0; transition: width 0.25s ease; background: var(--bg); overflow: visible; position: relative; }
+.sidebar.resizing { transition: none; }
 .sidebar.collapsed { width: 68px; }
+.sidebar-resizer { position: absolute; top: 0; right: -5px; bottom: 0; z-index: 20; width: 10px; cursor: col-resize; touch-action: none; }
+.sidebar-resizer::before { content: ""; position: absolute; top: 0; bottom: 0; left: 4px; width: 2px; background: transparent; transition: background 0.15s ease; }
+.sidebar-resizer span { position: absolute; top: 50%; left: 2px; width: 6px; height: 44px; transform: translateY(-50%); border-radius: 4px; background: #cbd5e1; opacity: 0; transition: opacity 0.15s ease, background 0.15s ease; }
+.sidebar-resizer:hover::before, .sidebar.resizing .sidebar-resizer::before { background: var(--primary, #ff5a1f); }
+.sidebar-resizer:hover span, .sidebar.resizing .sidebar-resizer span { opacity: 1; background: var(--primary, #ff5a1f); }
 .toggle-btn { width: 34px; height: 34px; margin: 0 0 14px 16px; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 8px; color: var(--text3); transition: all 0.2s ease; }
 .toggle-btn:hover { background: var(--bg2); color: var(--text1); }
 .toggle-btn svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.8; fill: none; transition: transform 0.25s ease; }
@@ -573,4 +596,20 @@ onBeforeUnmount(() => {
 .icon-btn-sm { width: 28px; height: 28px; flex-shrink: 0; border: none; background: transparent; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text3); }
 .icon-btn-sm:hover { background: var(--bg2); color: var(--text1); }
 .icon-btn-sm svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 1.7; fill: none; }
+
+@media (max-width: 1180px) {
+  .sidebar { width: 68px !important; }
+  .sidebar-resizer { display: none; }
+  .sidebar .section-label,
+  .sidebar .section-content,
+  .sidebar .user-profile-meta,
+  .sidebar .sidebar-footer .icon-btn-sm { display: none; }
+  .sidebar .toggle-btn { margin-left: 16px; }
+  .sidebar .section-btn { justify-content: center; padding: 10px; }
+  .sidebar .sidebar-footer { padding: 14px 17px; }
+}
+
+@media (max-width: 760px) {
+  .sidebar { display: none; }
+}
 </style>

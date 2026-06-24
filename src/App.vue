@@ -1,6 +1,6 @@
 <template>
   <div class="app">
-    <TopNav />
+    <TopNav v-if="!route.meta.hideTopNav" />
     <div class="body">
       <Sidebar v-if="!route.meta.authPage" />
       <main class="main">
