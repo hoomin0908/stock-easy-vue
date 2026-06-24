@@ -174,14 +174,6 @@
         </div>
       </div>
 
-      <div v-else-if="activeSection === 'terms'">
-        <div v-if="savedTerms.length === 0" class="empty-state-box">
-          <p>저장한 용어가 없어요</p>
-        </div>
-        <div class="word-pills">
-          <span v-for="term in savedTerms" :key="term.id" class="word-pill">{{ term.name }}</span>
-        </div>
-      </div>
     </div>
 
     <div class="sidebar-footer">
@@ -244,8 +236,7 @@ const userInitial = computed(() => {
 
 const sections = [
   { key: "watchlist", label: "내 관심 기업", icon: '<polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />' },
-  { key: "sector", label: "인기 테마", icon: '<rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" />' },
-  { key: "terms", label: "저장된 용어", icon: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />' }
+  { key: "sector", label: "인기 테마", icon: '<rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" />' }
 ];
 
 function selectSection(key) {
@@ -401,8 +392,6 @@ function handleThemeClick(theme) {
   router.push({ path: '/', query: { ...route.query, sector: theme === '전체' ? undefined : theme } });
 }
 
-const savedTerms = ref([]);
-
 onMounted(() => {
   if (currentUser.value) {
     loadInterestStocks();
@@ -487,8 +476,6 @@ onBeforeUnmount(() => {
 .company-search-results::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
 .add-btn { display: flex; align-items: center; gap: 6px; padding: 10px; font-size: 12.5px; color: var(--text3); border: 1px dashed var(--border); border-radius: var(--radius); margin-top: 12px; cursor: pointer; justify-content: center; transition: all 0.15s ease; background: #fff; }
 .add-btn:hover { border-color: var(--primary-border); color: var(--primary); background: var(--primary-bg); }
-.word-pills { display: flex; flex-wrap: wrap; gap: 6px; }
-.word-pill { padding: 5px 10px; border-radius: 20px; background: var(--primary-bg); border: 1px solid var(--primary-border); font-size: 11px; color: var(--primary); font-weight: 600; }
 .search-input-container { position: relative; margin-bottom: 14px; display: flex; align-items: center; }
 .search-lens { position: absolute; left: 10px; width: 14px; height: 14px; stroke: var(--text3); stroke-width: 2; fill: none; }
 .premium-sector-input { width: 100%; padding: 8px 12px 8px 32px; border-radius: var(--radius); border: 1px solid var(--border); font-size: 12.5px; background: var(--bg2); transition: all 0.2s ease; }
