@@ -3,6 +3,11 @@
     <aside class="list-side" :class="{ 'has-detail': route.params.id }">
       
       <div class="filter-bar">
+        <div v-if="route.query.stockId" class="selected-company-label">
+          <strong>{{ route.query.stockName || "선택 기업" }}</strong>
+          <span>관련 뉴스</span>
+        </div>
+
         <button
           v-for="f in filters"
           :key="f.value"
@@ -75,7 +80,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed, inject } from "vue";
+import { ref, watch, computed, inject } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import NewsCard from "../components/news/NewsCard.vue";
 import { fetchNewsFeed, fetchNewsByStock } from "../services/api";
@@ -96,6 +101,7 @@ const activeFilter = ref("ALL");
 const newsList = ref([]);
 const isNewsLoading = ref(false);
 const newsError = ref("");
+let latestNewsRequestId = 0;
 
 const themeKeywords = {
   "반도체": ["반도체", "칩", "삼성전자", "SK하이닉스", "엔비디아", "파운드리", "HBM", "설계"],
@@ -112,25 +118,34 @@ const themeKeywords = {
 
 // 1. 백엔드 전체 목록 원본 데이터 스캔 엔진 (API 명세 완전 방어)
 const loadNews = async () => {
+  const requestId = ++latestNewsRequestId;
+  const stockId = route.query.stockId;
+
   isNewsLoading.value = true;
   newsError.value = "";
 
   try {
-    const response = route.query.stockId
-      ? await fetchNewsByStock(route.query.stockId)
+    const response = stockId
+      ? await fetchNewsByStock(stockId)
       : await fetchNewsFeed();
+
+    if (requestId !== latestNewsRequestId) return;
 
     newsList.value = Array.isArray(response.data)
       ? response.data
       : (response.data?.results || []);
   } catch (error) {
+    if (requestId !== latestNewsRequestId) return;
+
     console.error("API 요청 실패:", error);
     newsList.value = [];
-    newsError.value = route.query.stockId
+    newsError.value = stockId
       ? "관심 기업 뉴스를 불러오지 못했습니다."
       : "뉴스를 불러오지 못했습니다.";
   } finally {
-    isNewsLoading.value = false;
+    if (requestId === latestNewsRequestId) {
+      isNewsLoading.value = false;
+    }
   }
 };
 
@@ -210,13 +225,22 @@ const displayNewsList = computed(() => {
   return list;
 });
 
-onMounted(() => {
-  loadNews();
-});
+watch(
+  () => route.query.stockId,
+  () => {
+    selectedStockFilter.value = null;
+    loadNews();
+  },
+  { immediate: true }
+);
 
 watch(
-  () => [route.query.sector, route.query.stockId],
-  loadNews
+  () => route.query.sector,
+  (sector, previousSector) => {
+    if (sector !== previousSector && !route.query.stockId) {
+      loadNews();
+    }
+  }
 );
 </script>
 
@@ -224,7 +248,10 @@ watch(
 .split-container { display: flex; width: 100%; height: 100%; background: var(--bg); overflow: hidden; }
 .list-side { flex: 2; min-width: 420px; border-right: 1px solid var(--border); display: flex; flex-direction: column; background: var(--bg2); transition: flex 0.3s ease, width 0.3s ease; }
 .list-side.has-detail { flex: 0.7; min-width: 380px; max-width: 420px; }
-.filter-bar { display: flex; gap: 8px; padding: 16px; background: var(--bg); border-bottom: 1px solid var(--border); }
+.filter-bar { display: flex; align-items: center; gap: 8px; padding: 16px; background: var(--bg); border-bottom: 1px solid var(--border); }
+.selected-company-label { display: flex; align-items: baseline; gap: 4px; margin-right: auto; min-width: 0; color: var(--text2); }
+.selected-company-label strong { overflow: hidden; color: var(--primary); font-size: 12.5px; text-overflow: ellipsis; white-space: nowrap; }
+.selected-company-label span { flex-shrink: 0; font-size: 11px; }
 .filter-chip { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg); font-size: 12.5px; color: var(--text2); cursor: pointer; transition: all 0.15s ease; }
 .filter-chip:hover { border-color: var(--primary-border); color: var(--primary); }
 .filter-chip.active { background: var(--primary); color: #ffffff; border-color: var(--primary); font-weight: 600; }
