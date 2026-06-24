@@ -18,7 +18,7 @@
         </button>
       </div>
 
-      <div class="list-scroll">
+      <div class="list-scroll" :class="{ 'detail-open': route.params.id }">
         <div v-if="displayNewsList.length === 0" class="empty-state" style="margin-top: 40px">
           <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="1.6" fill="none">
             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
@@ -29,11 +29,34 @@
         </div>
 
         <NewsCard 
-          v-for="newsItem in displayNewsList" 
+          v-for="newsItem in displayNewsPage" 
           :key="newsItem.id" 
           :news="newsItem" 
           :class="{ active: route.params.id == newsItem.id }"
         />
+      </div>
+
+      <div v-if="displayNewsList.length > pageSize" class="pagination-bar">
+        <button type="button" class="page-nav-btn" :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">
+          이전
+        </button>
+
+        <div class="page-number-list">
+          <button
+            v-for="page in visiblePageNumbers"
+            :key="page"
+            type="button"
+            class="page-number-btn"
+            :class="{ active: page === currentPage }"
+            @click="goToPage(page)"
+          >
+            {{ page }}
+          </button>
+        </div>
+
+        <button type="button" class="page-nav-btn" :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">
+          다음
+        </button>
       </div>
     </aside>
 
@@ -85,6 +108,8 @@ const filters = [
 ];
 const activeFilter = ref("ALL");
 const newsList = ref([]);
+const currentPage = ref(1);
+const pageSize = 14;
 
 function clampListWidth(width) {
   const containerWidth = splitContainer.value?.clientWidth || window.innerWidth;
@@ -142,12 +167,7 @@ const themeKeywords = {
 // 1. 백엔드 전체 목록 원본 데이터 스캔 엔진 (API 명세 완전 방어)
 const loadNews = async () => {
   try {
-    let response = null;
-    if (typeof apiModule.fetchNewsFeed === 'function') {
-      response = await apiModule.fetchNewsFeed();
-    } else if (typeof apiModule.fetchNewsList === 'function') {
-      response = await apiModule.fetchNewsList();
-    }
+    const response = await apiModule.fetchNewsFeed();
     newsList.value = response ? (response.data || []) : [];
   } catch (error) {
     console.error("API 요청 실패:", error);
@@ -222,6 +242,29 @@ const displayNewsList = computed(() => {
   return list;
 });
 
+const totalPages = computed(() => Math.max(1, Math.ceil(displayNewsList.value.length / pageSize)));
+
+const displayNewsPage = computed(() => {
+  const start = (currentPage.value - 1) * pageSize;
+  return displayNewsList.value.slice(start, start + pageSize);
+});
+
+const visiblePageNumbers = computed(() => {
+  const total = totalPages.value;
+  const current = currentPage.value;
+  const start = Math.max(1, current - 2);
+  const end = Math.min(total, start + 4);
+  const adjustedStart = Math.max(1, end - 4);
+
+  const pages = [];
+  for (let page = adjustedStart; page <= end; page += 1) pages.push(page);
+  return pages;
+});
+
+function goToPage(page) {
+  currentPage.value = Math.min(Math.max(page, 1), totalPages.value);
+}
+
 onMounted(() => {
   loadNews();
   window.addEventListener("resize", handleWindowResize);
@@ -236,26 +279,73 @@ onUnmounted(() => {
 watch(() => route.query.sector, () => {
   loadNews();
 });
+
+watch(
+  [() => activeFilter.value, () => route.query.sector, () => selectedStockFilter.value, () => newsList.value.length],
+  () => {
+    currentPage.value = 1;
+  }
+);
 </script>
 
 <style scoped>
-.split-container { display: flex; width: 100%; height: 100%; background: var(--bg); overflow: hidden; }
+.split-container { display: flex; width: 100%; height: 100%; background: var(--bg2); overflow: hidden; }
 .split-container.resizing { cursor: col-resize; }
-.list-side { flex: 1; min-width: 0; border-right: 1px solid var(--border); display: flex; flex-direction: column; background: var(--bg2); }
+.list-side {
+  flex: 1;
+  min-width: 0;
+  height: calc(100% - 16px);
+  margin: 8px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  background: var(--cream);
+  overflow: hidden;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.42);
+}
 .list-side.has-detail { flex: 0 0 auto; min-width: 240px; max-width: 760px; }
 .split-resizer { position: relative; flex: 0 0 8px; margin-left: -4px; margin-right: -4px; z-index: 5; cursor: col-resize; touch-action: none; }
 .split-resizer::before { content: ""; position: absolute; top: 0; bottom: 0; left: 3px; width: 2px; background: transparent; transition: background 0.15s ease; }
 .split-resizer:hover::before, .resizing .split-resizer::before { background: var(--primary, #ff5a1f); }
 .split-resizer span { position: absolute; top: 50%; left: 1px; width: 6px; height: 42px; transform: translateY(-50%); border-radius: 4px; background: #cbd5e1; opacity: 0; transition: opacity 0.15s ease, background 0.15s ease; }
 .split-resizer:hover span, .resizing .split-resizer span { opacity: 1; background: var(--primary, #ff5a1f); }
-.filter-bar { display: flex; gap: 8px; padding: 16px; background: var(--bg); border-bottom: 1px solid var(--border); }
-.filter-chip { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg); font-size: 12.5px; color: var(--text2); cursor: pointer; transition: all 0.15s ease; }
+.filter-bar { display: flex; gap: 10px; padding: 18px; background: var(--cream); border-bottom: 1px solid var(--border); }
+.filter-chip { padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--cream); font-size: 12.5px; font-weight: 700; color: var(--text2); cursor: pointer; transition: all 0.18s ease; }
 .filter-chip:hover { border-color: var(--primary-border); color: var(--primary); }
-.filter-chip.active { background: var(--primary); color: #ffffff; border-color: var(--primary); font-weight: 600; }
-.list-scroll { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.filter-chip.active { background: linear-gradient(90deg, #ff5a00, #ff9500); color: #ffffff; border-color: transparent; font-weight: 800; box-shadow: 0 0 22px rgba(255, 106, 0, 0.18); }
+.list-scroll { flex: 1; overflow-y: auto; padding: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 14px; }
+.list-scroll.detail-open { display: flex; flex-direction: column; gap: 12px; }
+.list-scroll > .empty-state { grid-column: 1 / -1; }
 .list-scroll::-webkit-scrollbar { width: 4px; }
-.list-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
-.detail-side { flex: 1.3; min-width: 0; height: 100%; background: var(--bg); display: flex; flex-direction: column; }
+.list-scroll::-webkit-scrollbar-thumb { background: #d6dde5; border-radius: 2px; }
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 18px 18px;
+  border-top: 1px solid var(--border);
+  background: var(--cream);
+}
+.page-number-list { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.page-nav-btn,
+.page-number-btn {
+  border: 1px solid var(--border);
+  background: var(--cream);
+  color: var(--text2);
+  border-radius: 999px;
+  padding: 7px 11px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.page-nav-btn:hover,
+.page-number-btn:hover { border-color: var(--primary-border); color: var(--primary); }
+.page-number-btn.active { background: var(--primary); border-color: var(--primary); color: #ffffff; }
+.page-nav-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.detail-side { flex: 1.3; min-width: 0; height: 100%; background: var(--bg2); display: flex; flex-direction: column; }
 .mobile-list-back { display: none; }
 .select-notice { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; }
 .select-notice h3 { font-size: 16px; font-weight: 700; color: var(--text1); margin-top: 16px; }
@@ -270,11 +360,15 @@ watch(() => route.query.sector, () => {
   .list-scroll { padding: 12px; }
 }
 
+@media (max-width: 900px) {
+  .list-scroll { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 760px) {
   .split-container { position: relative; }
   .list-side.has-detail { display: none; }
   .split-resizer { display: none; }
   .detail-side { flex: 1; width: 100%; }
-  .mobile-list-back { display: inline-flex; align-items: center; align-self: flex-start; margin: 10px 12px 0; padding: 7px 11px; border: 1px solid var(--border); border-radius: 7px; background: #ffffff; color: var(--text2); font-size: 12px; font-weight: 650; cursor: pointer; z-index: 2; }
+  .mobile-list-back { display: inline-flex; align-items: center; align-self: flex-start; margin: 10px 12px 0; padding: 7px 11px; border: 1px solid var(--border); border-radius: 7px; background: var(--cream); color: var(--text2); font-size: 12px; font-weight: 650; cursor: pointer; z-index: 2; }
 }
 </style>

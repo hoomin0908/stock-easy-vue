@@ -1,5 +1,5 @@
 <template>
-  <div class="app">
+  <div class="app" :class="{ 'theme-dark': themeMode === 'dark' }">
     <TopNav v-if="!route.meta.hideTopNav" />
     <div class="body">
       <Sidebar v-if="!route.meta.authPage" />
@@ -11,12 +11,13 @@
 </template>
 
 <script setup>
-import { ref, provide } from "vue";
+import { ref, provide, watch } from "vue";
 import { useRoute } from "vue-router";
 import TopNav from "./components/layout/TopNav.vue";
 import Sidebar from "./components/layout/Sidebar.vue";
 
 const route = useRoute();
+const themeMode = ref(localStorage.getItem("stockeasy-theme") || "light");
 
 // 1. 상태 정의
 const watchlistItems = ref([]); // 관심 종목 리스트
@@ -58,10 +59,42 @@ provide("selectedStockFilter", selectedStockFilter);
 provide("toggleWatchlist", toggleWatchlist);
 provide("isWatched", isWatched);
 provide("toggleStockFilter", toggleStockFilter);
+provide("themeMode", themeMode);
+provide("toggleTheme", () => {
+  themeMode.value = themeMode.value === "dark" ? "light" : "dark";
+});
+
+watch(themeMode, (mode) => {
+  localStorage.setItem("stockeasy-theme", mode);
+});
 </script>
 
 <style scoped>
 .app { display: flex; flex-direction: column; height: 100vh; background: var(--bg); }
 .body { display: flex; flex: 1; overflow: hidden; }
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+
+.app.theme-dark {
+  --cream: #0f1115;
+  --cream-soft: #151922;
+  --cream-deep: #1c2230;
+  --charcoal: #0b0d12;
+  --charcoal-soft: #111827;
+
+  --ai: #f59e0b;
+  --ai-bg: #17110a;
+  --ai-bg-strong: #2b1b0a;
+  --ai-border: #5c3a11;
+
+  --bg: #0b0d12;
+  --bg2: #111827;
+  --bg3: #1f2937;
+  --border: #263244;
+  --text1: #f3f4f6;
+  --text2: #cbd5e1;
+  --text3: #94a3b8;
+
+  --primary-bg: rgba(255, 106, 0, 0.14);
+  --primary-border: rgba(255, 126, 32, 0.3);
+}
 </style>
