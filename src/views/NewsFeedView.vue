@@ -7,19 +7,35 @@
     >
       
       <div class="filter-bar">
+        <div v-if="route.query.stockId || route.query.themeId" class="selected-company-label">
+          <strong>
+            {{ route.query.stockName || route.query.themeName || "선택 항목" }}
+          </strong>
+          <span>관련 뉴스</span>
+        </div>
+
         <button
           v-for="f in filters"
           :key="f.value"
           class="filter-chip"
           :class="{ active: activeFilter === f.value }"
-          @click="activeFilter = f.value"
+          @click="handleFilterClick(f.value)"
         >
           {{ f.label }}
         </button>
       </div>
 
       <div class="list-scroll">
-        <div v-if="displayNewsList.length === 0" class="empty-state" style="margin-top: 40px">
+        <div v-if="isNewsLoading" class="empty-state" style="margin-top: 40px">
+          뉴스를 불러오는 중입니다...
+        </div>
+
+        <div v-else-if="newsError" class="empty-state error-state" style="margin-top: 40px">
+          {{ newsError }}
+          <button class="retry-btn" type="button" @click="loadNews">다시 시도</button>
+        </div>
+
+        <div v-else-if="displayNewsList.length === 0" class="empty-state" style="margin-top: 40px">
           <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" stroke-width="1.6" fill="none">
             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
@@ -63,10 +79,15 @@
 </template>
 
 <script setup>
+import { ref, watch, computed, inject } from "vue";
 import { ref, onMounted, onUnmounted, watch, computed, inject } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import NewsCard from "../components/news/NewsCard.vue";
-import * as apiModule from "../services/api";
+import {
+  fetchNewsFeed,
+  fetchNewsByStock,
+  fetchNewsByTheme,
+} from "../services/api";
 
 const route = useRoute();
 const router = useRouter();
@@ -85,6 +106,9 @@ const filters = [
 ];
 const activeFilter = ref("ALL");
 const newsList = ref([]);
+const isNewsLoading = ref(false);
+const newsError = ref("");
+let latestNewsRequestId = 0;
 
 function clampListWidth(width) {
   const containerWidth = splitContainer.value?.clientWidth || window.innerWidth;
@@ -141,18 +165,54 @@ const themeKeywords = {
 
 // 1. 백엔드 전체 목록 원본 데이터 스캔 엔진 (API 명세 완전 방어)
 const loadNews = async () => {
+  const requestId = ++latestNewsRequestId;
+  const stockId = route.query.stockId;
+  const themeId = route.query.themeId;
+
+  isNewsLoading.value = true;
+  newsError.value = "";
+
   try {
-    let response = null;
-    if (typeof apiModule.fetchNewsFeed === 'function') {
-      response = await apiModule.fetchNewsFeed();
-    } else if (typeof apiModule.fetchNewsList === 'function') {
-      response = await apiModule.fetchNewsList();
+    let response;
+
+    if (stockId) {
+      response = await fetchNewsByStock(stockId);
+    } else if (themeId) {
+      console.log("테마 뉴스 조회", themeId);
+      response = await fetchNewsByTheme(themeId);
+    } else {
+      response = await fetchNewsFeed();
     }
-    newsList.value = response ? (response.data || []) : [];
+
+    if (requestId !== latestNewsRequestId) return;
+
+    newsList.value = Array.isArray(response.data)
+      ? response.data
+      : (response.data?.results || []);
   } catch (error) {
+    if (requestId !== latestNewsRequestId) return;
+
     console.error("API 요청 실패:", error);
+    newsList.value = [];
+    newsError.value = stockId
+      ? "관심 기업 뉴스를 불러오지 못했습니다."
+      : themeId
+        ? "추천 테마 뉴스를 불러오지 못했습니다."
+        : "뉴스를 불러오지 못했습니다.";
+  } finally {
+    if (requestId === latestNewsRequestId) {
+      isNewsLoading.value = false;
+    }
   }
 };
+
+function handleFilterClick(value) {
+  activeFilter.value = value;
+
+  if (value === "ALL" && (route.query.stockId || route.query.themeId)) {
+    router.push({ path: "/", query: {} });
+  }
+}
 
 // 💡 2. 자식(NewsCard)의 가중치 판별 알고리즘을 100% 동일하게 복제
 function getNewsSentiment(item) {
@@ -222,20 +282,38 @@ const displayNewsList = computed(() => {
   return list;
 });
 
+watch(
+  [
+    () => route.query.stockId,
+    () => route.query.themeId,
+    () => route.query.sector,
+  ],
+  () => {
+    selectedStockFilter.value = null;
+    loadNews();
+  },
+  { immediate: true }
+);
+
 onMounted(() => {
-  loadNews();
   window.addEventListener("resize", handleWindowResize);
 });
 
 onUnmounted(() => {
   stopResize();
   window.removeEventListener("resize", handleWindowResize);
-});
-
-// 테마 필터 바뀔 시 원본 갱신
-watch(() => route.query.sector, () => {
-  loadNews();
-});
+watch(
+  () => route.query.sector,
+  (sector, previousSector) => {
+    if (
+      sector !== previousSector &&
+      !route.query.stockId &&
+      !route.query.themeId
+    ) {
+      loadNews();
+    }
+  }
+);
 </script>
 
 <style scoped>

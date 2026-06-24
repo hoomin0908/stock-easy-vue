@@ -52,6 +52,36 @@ export function fetchStocks(params = {}) {
   return api.get("/stocks/", { params });
 }
 
+// GET /api/v1/stocks/interests/ → 내 관심 기업 조회
+export function fetchInterestStocks() {
+  return api.get("/stocks/interests/");
+}
+
+// POST /api/v1/stocks/interests/ → 관심 기업 등록
+export function createInterestStock(stockId) {
+  return api.post("/stocks/interests/", { stock_id: stockId });
+}
+
+// DELETE /api/v1/stocks/interests/:interestStockId/ → 관심 기업 삭제
+export function deleteInterestStock(interestStockId) {
+  return api.delete(`/stocks/interests/${interestStockId}/`);
+}
+
+// GET /api/v1/news/stocks/:stockId/ → 관심 기업별 뉴스 조회
+export function fetchNewsByStock(stockId) {
+  return api.get(`/news/stocks/${stockId}/`);
+}
+
+// GET /api/v1/stocks/interests/themes/ → 관심 기업 기반 추천 테마 조회
+export function fetchRecommendedThemes() {
+  return api.get("/stocks/interests/themes/");
+}
+
+// GET /api/v1/news/themes/:themeId/ → 테마별 뉴스 조회
+export function fetchNewsByTheme(themeId) {
+  return api.get(`/news/themes/${themeId}/`);
+}
+
 // GET /api/v1/accounts/watchlist/  → 내 관심종목
 export function fetchWatchlist() {
   // TODO: 팀원 API 연동 (accounts 앱 쪽)
