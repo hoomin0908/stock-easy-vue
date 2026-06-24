@@ -1,9 +1,31 @@
 import axios from "axios";
 
-// 백엔드 API 베이스 URL. .env 파일에서 VITE_API_BASE_URL로 덮어쓸 수 있음
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "/api/v1",
+  baseURL: "/api/v1",
+  withCredentials: true,
+  xsrfCookieName: "csrftoken",
+  xsrfHeaderName: "X-CSRFToken",
 });
+
+// GET /api/v1/accounts/me/ → 로그인 상태 확인 및 CSRF 쿠키 발급
+export function fetchCurrentUser() {
+  return api.get("/accounts/me/");
+}
+
+// POST /api/v1/accounts/signup/ → 회원가입
+export function signupAccount(payload) {
+  return api.post("/accounts/signup/", payload);
+}
+
+// POST /api/v1/accounts/login/ → 로그인
+export function loginAccount(payload) {
+  return api.post("/accounts/login/", payload);
+}
+
+// POST /api/v1/accounts/logout/ → 로그아웃
+export function logoutAccount() {
+  return api.post("/accounts/logout/");
+}
 
 /**
  * 아래 함수들은 자리만 잡아둔 상태입니다.
