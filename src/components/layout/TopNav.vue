@@ -58,7 +58,9 @@
         </button>
       </form>
       <template v-if="isAuthenticated">
-        <div class="avatar">{{ displayName }}</div>
+        <button type="button" class="avatar" title="마이페이지" @click="goToMyPage">
+          {{ displayName }}
+        </button>
         <button class="logout-btn" :disabled="isLoggingOut" @click="handleLogout">
           {{ isLoggingOut ? "로그아웃 중" : "로그아웃" }}
         </button>
@@ -146,6 +148,10 @@ function submitSearch() {
     path: "/news",
     query: { sector: keyword },
   });
+}
+
+function goToMyPage() {
+  router.push({ path: "/mypage", query: { tab: "favorites" } });
 }
 
 async function handleLogout() {
@@ -279,6 +285,7 @@ async function handleLogout() {
 .avatar {
   height: 34px;
   padding: 0 12px;
+  border: none;
   border-radius: 17px;
   background: var(--primary);
   color: #fff;
@@ -287,7 +294,9 @@ async function handleLogout() {
   justify-content: center;
   font-size: 12px;
   font-weight: 600;
+  cursor: pointer;
 }
+.avatar:hover { background: var(--primary-hover); }
 .auth-link, .logout-btn {
   border: 1px solid var(--border);
   background: var(--cream);

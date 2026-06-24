@@ -16,7 +16,7 @@
         v-for="sec in sections"
         :key="sec.key"
         class="section-btn"
-        :class="{ active: activeSection === sec.key }"
+        :class="{ active: isSectionActive(sec.key) }"
         :title="sec.label"
         @click="selectSection(sec.key)"
       >
@@ -212,11 +212,24 @@
 
     <div class="sidebar-footer">
       <div class="user-row-card">
-        <div class="user-avatar-circle">{{ userInitial }}</div>
-        <div v-if="isOpen" class="user-profile-meta">
+        <button
+          type="button"
+          class="user-avatar-circle"
+          title="마이페이지"
+          @click="goToMyPage('favorites')"
+        >
+          {{ userInitial }}
+        </button>
+        <button
+          v-if="isOpen"
+          type="button"
+          class="user-profile-meta"
+          title="마이페이지"
+          @click="goToMyPage('favorites')"
+        >
           <div class="user-display-name">{{ userDisplayName }}</div>
-        </div>
-        <button v-if="isOpen" class="icon-btn-sm" title="설정">
+        </button>
+        <button v-if="isOpen" class="icon-btn-sm" title="정보 수정" @click="goToMyPage('settings')">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
         </button>
       </div>
@@ -275,10 +288,18 @@ const userInitial = computed(() => {
 const sections = [
   { key: "watchlist", label: "내 관심 기업", icon: '<polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />' },
   { key: "recommended", label: "추천 테마", icon: '<path d="M12 3l1.8 4.4L18 9.2l-4.2 1.8L12 15.5 10.2 11 6 9.2l4.2-1.8L12 3z" /><path d="M18.5 15l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9.9-2.1z" />' },
-  { key: "sector", label: "인기 테마", icon: '<rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" />' }
+  { key: "sector", label: "인기 테마", icon: '<rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" />' },
+  { key: "mypage-favorites", label: "관심 목록", icon: '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z" />' },
+  { key: "mypage-activity", label: "활동 내역", icon: '<path d="M3 12h4l3 8 4-16 3 8h4" />' },
+  { key: "mypage-settings", label: "정보 수정", icon: '<circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 8.92 4.6h0A1.65 1.65 0 0 0 10 3.09V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />' }
 ];
 
 function selectSection(key) {
+  if (key.startsWith("mypage-")) {
+    goToMyPage(key.replace("mypage-", ""));
+    return;
+  }
+
   activeSection.value = key;
   if (!isOpen.value) isOpen.value = true;
   if (key === "watchlist" && currentUser.value) {
@@ -288,6 +309,18 @@ function selectSection(key) {
   if (key === "recommended" && currentUser.value) {
     loadRecommendedThemes();
   }
+}
+
+function isSectionActive(key) {
+  if (key.startsWith("mypage-")) {
+    return route.path === "/mypage" && route.query.tab === key.replace("mypage-", "");
+  }
+
+  return activeSection.value === key && route.path !== "/mypage";
+}
+
+function goToMyPage(tab) {
+  router.push({ path: "/mypage", query: { tab } });
 }
 
 async function loadInterestStocks() {
@@ -689,9 +722,10 @@ onBeforeUnmount(() => {
 .luxury-sector-chip.active { background: var(--primary-bg); color: var(--primary); border-color: var(--primary-border); font-weight: 600; }
 .sidebar-footer { border-top: 1px solid var(--border); padding: 14px 12px; margin-top: auto; }
 .user-row-card { display: flex; align-items: center; gap: 10px; }
-.user-avatar-circle { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; background: var(--primary); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(255, 90, 31, 0.2); }
-.user-profile-meta { flex: 1; min-width: 0; text-align: left; }
-.user-display-name { font-size: 13px; font-weight: 600; color: var(--text1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-avatar-circle { width: 34px; height: 34px; border: none; border-radius: 50%; flex-shrink: 0; background: var(--primary); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(255, 90, 31, 0.2); cursor: pointer; }
+.user-avatar-circle:hover { background: var(--primary-hover); }
+.user-profile-meta { flex: 1; min-width: 0; text-align: left; border: none; background: transparent; padding: 0; cursor: pointer; }
+.user-display-name { font-size: 13px; font-weight: 700; color: var(--primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .icon-btn-sm { width: 28px; height: 28px; flex-shrink: 0; border: none; background: transparent; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text3); }
 .icon-btn-sm:hover { background: var(--bg2); color: var(--text1); }
 .icon-btn-sm svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 1.7; fill: none; }
