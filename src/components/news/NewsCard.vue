@@ -1,5 +1,5 @@
 <template>
-  <div class="news-card" @click="goToDetail">
+  <div class="news-card" :class="{ viewed: isViewed }" @click="goToDetail">
     <div class="card-body-layout">
       <div class="news-thumb-box">
         <img
@@ -61,11 +61,13 @@ const props = defineProps({
 const router = useRouter();
 const route = useRoute();
 const thumbnailFailed = ref(false);
+const viewedNewsIds = ref(readViewedNewsIds());
 
 const thumbnailSrc = computed(() => props.news.thumbnail_url || newsPlaceholder);
 const usesPlaceholder = computed(
   () => !props.news.thumbnail_url || thumbnailFailed.value
 );
+const isViewed = computed(() => viewedNewsIds.value.has(String(props.news.id)));
 
 function handleThumbnailError(event) {
   thumbnailFailed.value = true;
@@ -139,8 +141,22 @@ function saveRecentNews() {
     ].slice(0, 10);
 
     localStorage.setItem(storageKey, JSON.stringify(nextList));
+    viewedNewsIds.value = new Set(nextList.map(item => String(item.id)));
   } catch (error) {
     console.error("최근 본 뉴스 저장 실패", error);
+  }
+}
+
+function readViewedNewsIds() {
+  try {
+    const saved = JSON.parse(localStorage.getItem("stockeasy-recent-news") || "[]");
+    return new Set(
+      Array.isArray(saved)
+        ? saved.map(item => String(item.id))
+        : []
+    );
+  } catch {
+    return new Set();
   }
 }
 
@@ -162,14 +178,32 @@ const formattedTime = computed(() => {
 
 <style scoped>
 .news-card {
-  background: var(--cream);
+  position: relative;
+  background: linear-gradient(180deg, #ffffff 0%, #fffdfb 100%);
   border: 1px solid var(--border);
   border-radius: 16px; padding: 18px;
   transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease; cursor: pointer;
   container-type: inline-size;
 }
+.news-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 18px;
+  bottom: 18px;
+  width: 3px;
+  border-radius: 0 999px 999px 0;
+  background: linear-gradient(180deg, #ff8a1f, #ffd2a8);
+}
+.news-card.viewed {
+  background: var(--cream);
+  border-color: #e5eaf0;
+  opacity: 0.78;
+}
+.news-card.viewed::before { background: #d7dee7; }
+.news-card.viewed .news-title-link { color: var(--text2); }
 .news-card:hover { transform: translateY(-4px); box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08); border-color: #c9d3dd; }
-.news-card.active { border-color: var(--primary); background: var(--primary-bg); box-shadow: inset 0 0 0 1px rgba(255,106,0,.12), 0 0 28px rgba(255,106,0,.08); }
+.news-card.active { border-color: var(--primary); background: var(--primary-bg); opacity: 1; box-shadow: inset 0 0 0 1px rgba(255,106,0,.12), 0 0 28px rgba(255,106,0,.08); }
 
 .card-body-layout { display: flex; gap: 20px; align-items: stretch; }
 

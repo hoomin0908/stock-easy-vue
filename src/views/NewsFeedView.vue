@@ -29,7 +29,7 @@
         </button>
       </div>
 
-      <div class="list-scroll">
+      <div class="list-scroll" :class="{ 'detail-open': route.params.id }">
         <div v-if="isNewsLoading" class="empty-state" style="margin-top: 40px">
           뉴스를 불러오는 중입니다...
         </div>
@@ -535,7 +535,7 @@ watch(
 </script>
 
 <style scoped>
-.split-container { display: flex; width: 100%; height: 100%; background: var(--bg2); overflow: hidden; }
+.split-container { display: flex; width: 100%; height: 100%; background: var(--cream); overflow: hidden; }
 .split-container.resizing { cursor: col-resize; }
 .list-side {
   flex: 1;
@@ -548,7 +548,7 @@ watch(
   flex-direction: column;
   background: var(--cream);
   overflow: hidden;
-  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.42);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
 }
 .list-side.has-detail { flex: 0 0 auto; min-width: 240px; max-width: 760px; }
 .split-resizer { position: relative; flex: 0 0 8px; margin-left: -4px; margin-right: -4px; z-index: 5; cursor: col-resize; touch-action: none; }
@@ -556,10 +556,11 @@ watch(
 .split-resizer:hover::before, .resizing .split-resizer::before { background: var(--primary, #ff5a1f); }
 .split-resizer span { position: absolute; top: 50%; left: 1px; width: 6px; height: 42px; transform: translateY(-50%); border-radius: 4px; background: #cbd5e1; opacity: 0; transition: opacity 0.15s ease, background 0.15s ease; }
 .split-resizer:hover span, .resizing .split-resizer span { opacity: 1; background: var(--primary, #ff5a1f); }
-.filter-bar { display: flex; gap: 10px; padding: 18px; background: var(--cream); border-bottom: 1px solid var(--border); }
+.filter-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 18px; background: var(--cream); }
 .selected-company-label {
   display: inline-flex;
   align-items: center;
+  flex: 0 0 100%;
   gap: 6px;
   padding: 8px 10px;
   border-radius: var(--radius);
@@ -583,10 +584,10 @@ watch(
 .selected-company-label.topic-search-label span {
   color: var(--primary);
 }
-.filter-chip { padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--cream); font-size: 12.5px; font-weight: 700; color: var(--text2); cursor: pointer; transition: all 0.18s ease; }
+.filter-chip { flex: 0 0 auto; min-width: 54px; padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--cream); font-size: 12.5px; font-weight: 700; color: var(--text2); cursor: pointer; transition: all 0.18s ease; white-space: nowrap; }
 .filter-chip:hover { border-color: var(--primary-border); color: var(--primary); }
-.filter-chip.active { background: linear-gradient(90deg, #ff5a00, #ff9500); color: #ffffff; border-color: transparent; font-weight: 800; box-shadow: 0 0 22px rgba(255, 106, 0, 0.18); }
-.list-scroll { flex: 1; overflow-y: auto; padding: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 14px; }
+.filter-chip.active { background: var(--primary); color: #ffffff; border-color: var(--primary); font-weight: 800; box-shadow: none; }
+.list-scroll { flex: 1; overflow-y: auto; padding: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 14px; background: linear-gradient(180deg, #fffaf5 0%, var(--cream) 36%); }
 .list-scroll.detail-open { display: flex; flex-direction: column; gap: 12px; }
 .list-scroll > .empty-state { grid-column: 1 / -1; }
 .list-scroll::-webkit-scrollbar { width: 4px; }
@@ -617,7 +618,7 @@ watch(
 .page-number-btn:hover { border-color: var(--primary-border); color: var(--primary); }
 .page-number-btn.active { background: var(--primary); border-color: var(--primary); color: #ffffff; }
 .page-nav-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.detail-side { flex: 1.3; min-width: 0; height: 100%; background: var(--bg2); display: flex; flex-direction: column; }
+.detail-side { flex: 1.3; min-width: 0; height: 100%; background: var(--cream); display: flex; flex-direction: column; }
 .mobile-list-back { display: none; }
 .select-notice { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; }
 .select-notice h3 { font-size: 16px; font-weight: 700; color: var(--text1); margin-top: 16px; }
@@ -628,7 +629,8 @@ watch(
 @media (max-width: 1100px) {
   .list-side.has-detail { min-width: 240px; }
   .filter-bar { padding: 12px; gap: 6px; }
-  .filter-chip { flex: 1; padding: 6px 8px; }
+  .selected-company-label { padding: 7px 9px; font-size: 11.5px; }
+  .filter-chip { flex: 1 1 0; min-width: 44px; padding: 6px 8px; font-size: 11.5px; }
   .list-scroll { padding: 12px; }
 }
 

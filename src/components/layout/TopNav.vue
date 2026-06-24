@@ -1,12 +1,5 @@
 <template>
   <nav class="top-nav">
-    <router-link class="logo" :to="logoLink">
-      <div class="logo-badge">
-        <svg viewBox="0 0 16 16"><polyline points="1,12 5,7 9,10 15,3" /></svg>
-      </div>
-      STOCKEASY
-    </router-link>
-
     <div v-if="!route.meta.authPage" class="nav-tabs">
       <router-link class="nav-tab" to="/news" active-class="active">뉴스</router-link>
       <router-link class="nav-tab" to="/glossary" active-class="active">용어사전</router-link>
@@ -91,10 +84,6 @@ const displayName = computed(
   () => currentUser.value?.nickname || currentUser.value?.email || "사용자"
 );
 
-const logoLink = computed(() => {
-  return isAuthenticated.value ? "/news" : "/";
-});
-
 const loginLink = computed(() => ({
   path: "/login",
   query: route.meta.authPage ? {} : { redirect: route.fullPath },
@@ -149,7 +138,7 @@ function submitSearch() {
 }
 
 function goToMyPage() {
-  router.push({ path: "/mypage", query: { tab: "favorites" } });
+  router.push({ path: "/mypage" });
 }
 
 async function handleLogout() {
@@ -172,59 +161,53 @@ async function handleLogout() {
 .top-nav {
   height: 68px;
   flex-shrink: 0;
-  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  padding: 0 32px;
+  padding: 0 28px;
   background: var(--cream);
   backdrop-filter: blur(16px);
   position: sticky;
   top: 0;
   z-index: 100;
 }
-.top-nav .logo { color: var(--text1); }
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 20px;
-  font-weight: 850;
-  color: var(--text1);
-  margin-right: 32px;
-  letter-spacing: -0.6px;
-}
-.logo-badge {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  background: var(--primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 0 22px rgba(255, 106, 0, 0.42);
-}
-.logo-badge svg { width: 14px; height: 14px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; }
 .nav-tabs { display: flex; height: 68px; }
 .nav-tab {
+  position: relative;
   display: flex;
   align-items: center;
   padding: 0 20px;
   font-size: 13.5px;
   font-weight: 650;
-  color: var(--text2);
-  border-bottom: 2.5px solid transparent;
+  color: var(--text3);
   white-space: nowrap;
   transition: all 0.15s ease;
 }
+.nav-tab::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 0;
+  height: 3px;
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(0deg, rgba(255, 106, 0, 0.95), rgba(255, 190, 120, 0));
+  opacity: 0;
+  transform: translateY(7px) scaleX(0.72);
+  transform-origin: center bottom;
+  transition: opacity 0.28s ease, transform 0.34s ease;
+}
 .nav-tab:hover { color: var(--text1); }
 .nav-tab.active {
-  color: var(--text1);
-  border-bottom-color: var(--primary);
+  color: var(--primary);
   font-weight: 800;
   text-shadow: 0 0 18px rgba(255, 106, 0, 0.3);
 }
+.nav-tab.active::after {
+  opacity: 1;
+  transform: translateY(0) scaleX(1);
+}
 
-.nav-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: 10px; align-self: stretch; }
 .top-search-form {
   display: flex;
   align-items: center;

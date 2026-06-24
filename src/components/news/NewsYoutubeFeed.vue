@@ -126,15 +126,31 @@ onMounted(loadComponentData);
 </script>
 
 <style scoped>
-.youtube-feed-container { display: flex; flex-direction: column; height: 100%; }
-.feed-header { margin-bottom: 20px; }
+.youtube-feed-container { display: flex; flex-direction: column; min-height: 100%; height: 100%; }
+.feed-header { margin-bottom: 16px; text-align: center; }
 .header-title { display: flex; align-items: center; gap: 8px; }
 .header-title h3 { font-size: 15px; font-weight: 800; color: var(--text1); margin: 0; }
 .header-caption { font-size: 12px; color: var(--text3); margin-top: 6px; }
 
-.video-grid { display: flex; flex-direction: column; gap: 20px; }
+.video-grid {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 4px 12px;
+  scroll-snap-type: x proximity;
+  margin: 0;
+}
+.video-grid::-webkit-scrollbar { height: 5px; }
+.video-grid::-webkit-scrollbar-thumb { background: var(--primary-border); border-radius: 999px; }
 
 .video-card {
+  flex: 0 0 min(360px, 90%);
+  scroll-snap-align: center;
   background: var(--cream); border-radius: 14px; overflow: hidden;
   border: 1px solid var(--border); transition: all 0.3s ease;
 }
@@ -147,16 +163,20 @@ onMounted(loadComponentData);
   font-size: 40px; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.5); opacity: 0.9;
 }
 
-.video-info { padding: 14px; text-align: left; background: var(--cream); }
+.video-info { padding: 16px; text-align: left; background: var(--cream); }
 .video-title {
-  font-size: 13.5px; font-weight: 800; color: var(--text1); line-height: 1.4; margin: 0 0 8px 0;
+  font-size: 14.5px; font-weight: 800; color: var(--text1); line-height: 1.45; margin: 0 0 8px 0;
   display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.channel-title { font-size: 12px; color: var(--text3); }
+.channel-title { font-size: 12.5px; color: var(--text3); }
 
 @media (min-width: 1400px) {
-  .video-grid { flex-direction: row !important; flex-wrap: wrap; }
-  .video-card { flex: 1 1 calc(33.33% - 14px); max-width: calc(33.33% - 14px); }
+  .video-card { flex-basis: min(390px, 34%); }
+}
+
+@media (max-width: 760px) {
+  .video-grid { justify-content: flex-start; }
+  .video-card { flex-basis: min(320px, 92%); }
 }
 
 .feed-state-box {

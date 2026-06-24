@@ -2,7 +2,14 @@
   <div class="detail-container">
     <div v-if="isLoading" class="loading-state">
       <div class="spinner"></div>
-      <p>실시간 AI 시장 영향 및 멀티미디어 인프라 분석 중...</p>
+      <template v-if="randomSavedTerm">
+        <p>AI 분석을 준비하는 동안 저장한 용어를 복습해보세요.</p>
+        <article class="loading-term-card">
+          <strong>{{ getTermName(randomSavedTerm) }}</strong>
+          <span>{{ getTermExplanation(randomSavedTerm) || getTermDescription(randomSavedTerm) }}</span>
+        </article>
+      </template>
+      <p v-else>실시간 AI 시장 영향 및 멀티미디어 인프라 분석 중...</p>
     </div>
 
     <div v-else-if="news" class="detail-scroll-area">
@@ -34,6 +41,11 @@
             </button>
 
           </div>
+        </div>
+
+        <div v-if="relatedCompanyNames.length" class="related-company-row">
+          <span>관련 기업</span>
+          <strong v-for="company in relatedCompanyNames" :key="company">{{ company }}</strong>
         </div>
       </header>
 
@@ -81,21 +93,20 @@
               >
                 <summary class="term-badge-name">
                   <span>{{ getTermName(tm) }}</span>
-                  <span class="term-toggle-icon" aria-hidden="true">+</span>
+                  <button
+                    type="button"
+                    class="term-save-btn"
+                    :class="{ saved: isTermSaved(tm) }"
+                    :disabled="isTermSaving(tm)"
+                    :title="isTermSaved(tm) ? '용어 저장 취소' : '용어 저장'"
+                    :aria-label="isTermSaved(tm) ? '용어 저장 취소' : '용어 저장'"
+                    @click.stop.prevent="handleToggleSavedTerm(tm)"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M6 4.75A1.75 1.75 0 0 1 7.75 3h8.5A1.75 1.75 0 0 1 18 4.75V21l-6-3.75L6 21V4.75Z" />
+                    </svg>
+                  </button>
                 </summary>
-                <button
-                  type="button"
-                  class="term-save-btn"
-                  :class="{ saved: isTermSaved(tm) }"
-                  :disabled="isTermSaving(tm)"
-                  :title="isTermSaved(tm) ? '용어 저장 취소' : '용어 저장'"
-                  :aria-label="isTermSaved(tm) ? '용어 저장 취소' : '용어 저장'"
-                  @click.stop="handleToggleSavedTerm(tm)"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M6 4.75A1.75 1.75 0 0 1 7.75 3h8.5A1.75 1.75 0 0 1 18 4.75V21l-6-3.75L6 21V4.75Z" />
-                  </svg>
-                </button>
                 <div class="term-explanation-box">
                   <p class="term-explanation-txt">{{ getTermExplanation(tm) }}</p>
                   <p v-if="getTermSaveError(tm)" class="term-save-error">
@@ -351,6 +362,13 @@
             <span :class="['report-sentiment', sentimentClass]">{{ sentimentLabel }}</span>
           </div>
 
+          <section v-if="relatedCompanyNames.length" class="report-company-section">
+            <p class="report-section-label">RELATED COMPANIES</p>
+            <div class="report-company-list">
+              <span v-for="company in relatedCompanyNames" :key="company">{{ company }}</span>
+            </div>
+          </section>
+
           <section v-if="highlightFacts.length" class="report-section">
             <p class="report-section-label">EXECUTIVE FACTS</p>
             <h3>핵심 사실 요약</h3>
@@ -397,6 +415,30 @@
                 <h4>{{ reportReasonTitle }}</h4>
                 <p>{{ analysis.sentiment_reason || analysis.impact_reason }}</p>
               </div>
+            </div>
+          </section>
+
+          <section class="report-section report-reason-grid">
+            <article>
+              <p class="report-section-label">WHY THIS MATTERS</p>
+              <h3>분석 이유</h3>
+              <p>{{ reportAnalysisReason }}</p>
+            </article>
+            <article>
+              <p class="report-section-label">IMPACT DRIVER</p>
+              <h3>영향도 근거</h3>
+              <p>{{ reportImpactReason }}</p>
+            </article>
+          </section>
+
+          <section class="report-section report-signal-section">
+            <p class="report-section-label">NEXT SIGNALS</p>
+            <h3>다음에 볼 신호</h3>
+            <div class="report-signal-grid">
+              <article v-for="signal in reportSignals" :key="signal.title">
+                <strong>{{ signal.title }}</strong>
+                <p>{{ signal.description }}</p>
+              </article>
             </div>
           </section>
 
@@ -457,6 +499,8 @@ const openCommentMenuId = ref(null);
 const savedTerms = ref([]);
 const savingTermNames = ref(new Set());
 const termSaveErrors = ref({});
+const randomSavedTerm = ref(null);
+const SAVED_TERMS_KEY = "stockeasy-saved-terms";
 
 const toggleWatchlist = inject("toggleWatchlist");
 const isWatched = inject("isWatched");
@@ -654,14 +698,32 @@ function getTermExplanation(term) {
   );
 }
 
+function getTermDescription(term) {
+  return (
+    term?.term?.description ||
+    term?.description ||
+    term?.explanation ||
+    term?.meaning ||
+    ""
+  );
+}
+
 function normalizeTermName(term) {
   return getTermName(term).trim().toLocaleLowerCase("ko-KR");
 }
 
 function normalizeSavedTerms(data) {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.results)) return data.results;
-  return [];
+  const list = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.results)
+      ? data.results
+      : Array.isArray(data?.terms)
+        ? data.terms
+        : Array.isArray(data?.data)
+          ? data.data
+          : [];
+
+  return mergeSavedTerms(list, readLocalSavedTerms());
 }
 
 function isTermSaved(term) {
@@ -690,8 +752,74 @@ async function loadSavedTerms() {
     savedTerms.value = normalizeSavedTerms(data);
   } catch (error) {
     console.error("저장 용어 조회 실패", error);
-    savedTerms.value = [];
+    savedTerms.value = readLocalSavedTerms();
   }
+
+  pickRandomSavedTerm();
+}
+
+function readLocalSavedTerms() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SAVED_TERMS_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalSavedTerms(terms) {
+  localStorage.setItem(SAVED_TERMS_KEY, JSON.stringify(terms));
+}
+
+function mergeSavedTerms(primary, secondary) {
+  const merged = [];
+  const seen = new Set();
+
+  [...primary, ...secondary].forEach((item) => {
+    const key = normalizeTermName(item);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    merged.push(item);
+  });
+
+  return merged;
+}
+
+function buildLocalSavedTerm(termName, explanation, newsId) {
+  return {
+    id: `local-${normalizeTermName({ term: termName })}`,
+    term: {
+      name: termName,
+      description: explanation || "설명 정보가 없습니다.",
+    },
+    explanation,
+    news: newsId
+      ? { id: newsId, title: news.value?.title || "" }
+      : null,
+    created_at: new Date().toISOString(),
+  };
+}
+
+function saveLocalTerm(termName, explanation, newsId) {
+  const localTerms = readLocalSavedTerms();
+  const nextTerm = buildLocalSavedTerm(termName, explanation, newsId);
+  const nextTerms = mergeSavedTerms([nextTerm], localTerms);
+  writeLocalSavedTerms(nextTerms);
+  return nextTerm;
+}
+
+function deleteLocalTerm(term) {
+  const normalizedName = normalizeTermName(term);
+  writeLocalSavedTerms(
+    readLocalSavedTerms().filter((item) => normalizeTermName(item) !== normalizedName)
+  );
+}
+
+function pickRandomSavedTerm() {
+  const candidates = savedTerms.value.filter((item) => getTermName(item) && getTermDescription(item));
+  randomSavedTerm.value = candidates.length
+    ? candidates[Math.floor(Math.random() * candidates.length)]
+    : null;
 }
 
 async function handleToggleSavedTerm(term) {
@@ -710,21 +838,31 @@ async function handleToggleSavedTerm(term) {
 
   try {
     if (savedTerm) {
-      await deleteSavedTerm(savedTerm.id);
-      savedTerms.value = savedTerms.value.filter((item) => item.id !== savedTerm.id);
+      if (String(savedTerm.id).startsWith("local-")) {
+        deleteLocalTerm(savedTerm);
+      } else {
+        await deleteSavedTerm(savedTerm.id);
+      }
+      savedTerms.value = savedTerms.value.filter(
+        (item) => normalizeTermName(item) !== normalizedName
+      );
     } else {
       const newsId = news.value?.id ?? route.params.id ?? null;
       const { data } = await saveTerm(termName, explanation, newsId);
-      savedTerms.value = [...savedTerms.value, data];
+      savedTerms.value = mergeSavedTerms([data], savedTerms.value);
     }
   } catch (error) {
     console.error(savedTerm ? "용어 저장 취소 실패" : "용어 저장 실패", error);
-    termSaveErrors.value = {
-      ...termSaveErrors.value,
-      [normalizedName]: savedTerm
-        ? "용어 저장 취소에 실패했습니다."
-        : "용어 저장에 실패했습니다.",
-    };
+    if (savedTerm) {
+      deleteLocalTerm(savedTerm);
+      savedTerms.value = savedTerms.value.filter(
+        (item) => normalizeTermName(item) !== normalizedName
+      );
+    } else {
+      const newsId = news.value?.id ?? route.params.id ?? null;
+      const localTerm = saveLocalTerm(termName, explanation, newsId);
+      savedTerms.value = mergeSavedTerms([localTerm], savedTerms.value);
+    }
   } finally {
     const nextSavingTermNames = new Set(savingTermNames.value);
     nextSavingTermNames.delete(normalizedName);
@@ -735,6 +873,7 @@ async function handleToggleSavedTerm(term) {
 async function loadDetail() {
   if (!route.params.id) return;
   isLoading.value = true;
+  pickRandomSavedTerm();
   try {
     const { data } = await fetchNewsDetail(route.params.id);
     news.value = data;
@@ -871,26 +1010,117 @@ const reportReasonTitle = computed(() => {
   return "중립 판단 이유";
 });
 
-// 💡 3중 방어막 스캔: 백엔드가 어떤 형태(뱀직구, 카멜)로 키를 던져주든 무조건 회사명을 찾아내는 인텔리전스 파서
+const reportAnalysisReason = computed(() => {
+  return (
+    analysis.value?.analysis_reason ||
+    analysis.value?.sentiment_reason ||
+    `이 기사는 ${targetCompanyName.value || "관련 기업"}의 실적 기대, 투자 심리, 업종 수급에 영향을 줄 수 있는 정보를 담고 있어 투자 판단 리포트로 정리했습니다.`
+  );
+});
+
+const reportImpactReason = computed(() => {
+  return (
+    analysis.value?.impact_reason ||
+    (highlightFacts.value[0]?.reason
+      ? `핵심 팩트가 주가 재료로 해석될 가능성이 있어 영향도를 ${analysis.value?.impact_score || "0.0"}점으로 반영했습니다. ${highlightFacts.value[0].reason}`
+      : `현재 기사에서 확인되는 직접성, 관련 기업 범위, 투자자 관심도를 기준으로 영향도 ${analysis.value?.impact_score || "0.0"}점을 산정했습니다.`)
+  );
+});
+
+const reportSignals = computed(() => {
+  const company = targetCompanyName.value || "관련 기업";
+  return [
+    {
+      title: "가격 반응",
+      description: `${company}와 같은 업종 종목의 장중 등락률이 기사 방향과 같은 흐름을 보이는지 확인하세요.`,
+    },
+    {
+      title: "거래대금",
+      description: "단순 뉴스 소비인지 실제 매수·매도세 유입인지 거래대금 증가로 구분할 수 있습니다.",
+    },
+    {
+      title: "후속 공시",
+      description: "실적, 계약, 규제, 수주처럼 기사 내용을 확정하거나 뒤집는 공식 자료가 나오는지 봐야 합니다.",
+    },
+  ];
+});
+
+const relatedCompanyNames = computed(() => {
+  if (!news.value) return [];
+
+  const names = extractCompanyNames(news.value);
+  const fallback = inferCompanyNamesFromTitle(news.value.title || "");
+  return [...new Set([...names, ...fallback])].slice(0, 3);
+});
+
 const targetCompanyName = computed(() => {
   if (!news.value) return "";
-  
-  // 1순위: 장고 수순 related_stocks 리스트 확인
-  const stocks = news.value.related_stocks || news.value.news_stocks;
-  if (stocks && stocks.length > 0) {
-    const item = stocks[0];
-    return item.stock_name || item.stockName || item.name || "";
-  }
-  
-  // 2순위: 혹시 기사 제목에 회사명이 걸려있을 경우 자동 추출 백업선 가동
-  const title = news.value.title || "";
-  if (title.includes("삼성전자") || title.includes("삼전")) return "삼성전자";
-  if (title.includes("국민은행") || title.includes("KB국민")) return "KB국민은행";
-  if (title.includes("현대차")) return "현대자동차";
-  if (title.includes("홈플러스")) return "홈플러스";
-  
-  return "";
+  return relatedCompanyNames.value[0] || "";
 });
+
+function extractCompanyNames(item) {
+  const candidates = [
+    item?.related_stocks,
+    item?.news_stocks,
+    item?.stocks,
+    item?.stock,
+    item?.companies,
+    item?.company,
+    item?.related_companies,
+    item?.relatedCompanies,
+    item?.ai_analysis?.related_stocks,
+    item?.ai_analysis?.news_stocks,
+    item?.ai_analysis?.stocks,
+    item?.ai_analysis?.companies,
+    item?.ai_analysis?.related_companies,
+  ];
+
+  return candidates
+    .flatMap((value) => normalizeCompanyCandidate(value))
+    .map((company) => normalizeCompanyName(company))
+    .filter(Boolean);
+}
+
+function normalizeCompanyCandidate(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  return [value];
+}
+
+function normalizeCompanyName(company) {
+  if (typeof company === "string") return company.trim();
+  if (!company || typeof company !== "object") return "";
+
+  return (
+    company.stock_name ||
+    company.stockName ||
+    company.company_name ||
+    company.companyName ||
+    company.name ||
+    company.title ||
+    company.stock?.stock_name ||
+    company.stock?.name ||
+    company.company?.name ||
+    ""
+  ).trim();
+}
+
+function inferCompanyNamesFromTitle(title) {
+  const hints = [
+    ["삼성전자", ["삼성전자", "삼전"]],
+    ["SK하이닉스", ["SK하이닉스", "하이닉스"]],
+    ["KB국민은행", ["국민은행", "KB국민", "KB금융"]],
+    ["현대자동차", ["현대차", "현대자동차"]],
+    ["기아", ["기아"]],
+    ["네이버", ["네이버", "NAVER"]],
+    ["카카오", ["카카오"]],
+    ["홈플러스", ["홈플러스"]],
+  ];
+
+  return hints
+    .filter(([, keywords]) => keywords.some((keyword) => title.includes(keyword)))
+    .map(([name]) => name);
+}
 </script>
 
 <style scoped>
@@ -905,25 +1135,32 @@ const targetCompanyName = computed(() => {
   overflow: hidden;
   container-type: inline-size;
   container-name: news-detail;
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 20px;
   background: var(--cream);
-  box-shadow: 0 20px 54px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
 }
 .loading-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text3); gap: 12px; }
 .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+.loading-term-card { width: min(420px, calc(100% - 32px)); padding: 16px 18px; border: 1px solid var(--primary-border); border-radius: 12px; background: var(--primary-bg); text-align: left; box-shadow: 0 14px 32px rgba(255, 106, 0, 0.08); }
+.loading-term-card strong { display: block; color: var(--primary); font-size: 15px; margin-bottom: 7px; }
+.loading-term-card span { display: block; color: var(--text2); font-size: 13px; line-height: 1.65; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .detail-scroll-area { flex: 1; overflow-y: auto; padding: 24px; text-align: left; }
-.detail-header { display: flex; flex-direction: column; gap: 14px; padding: 8px 4px 18px; }
+.detail-header { display: flex; flex-direction: column; gap: 14px; padding: 8px 0 18px; }
 .detail-meta-row { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; font-size: 13px; color: var(--text3); }
+.related-company-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.related-company-row span { color: var(--text3); font-size: 11.5px; font-weight: 800; }
+.related-company-row strong { padding: 5px 9px; border: 1px solid var(--primary-border); border-radius: 999px; background: var(--primary-bg); color: var(--primary); font-size: 11.5px; font-weight: 850; }
 .meta-divider { margin: 0 8px; color: var(--border); }
 .impact-meta { color: var(--text2); font-weight: 700; }
 .sentiment-tag { padding: 4px 10px; border-radius: 4px; font-size: 11.5px; font-weight: 700; }
 .sentiment-tag.up { background: var(--signal-up-bg, #fef2f2); color: var(--signal-up, #dc2626); }
 .sentiment-tag.down { background: var(--signal-down-bg, #eff6ff); color: var(--signal-down, #2563eb); }
 .sentiment-tag.neutral { background: var(--signal-neutral-bg, #f1f5f9); color: var(--signal-neutral, #64748b); }
-.detail-title { max-width: 900px; font-size: clamp(24px, 3.2cqw, 38px); font-weight: 900; color: var(--text1); line-height: 1.25; letter-spacing: -0.055em; }
+.detail-title { max-width: 900px; margin: 0; font-size: clamp(24px, 3.2cqw, 38px); font-weight: 900; color: var(--text1); line-height: 1.25; letter-spacing: -0.055em; }
 .action-bar-row { display: flex; justify-content: space-between; align-items: center; font-size: 13.5px; color: var(--text2); margin-top: 4px; }
+.author-txt { min-height: 20px; display: inline-flex; align-items: center; color: var(--text2); }
 .detail-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
 .report-open-btn { display: inline-flex; align-items: center; gap: 10px; padding: 11px 18px; border: 1px solid transparent; border-radius: 999px; background: linear-gradient(90deg, #ff5300, #ff9800); color: #ffffff; font-size: 12.5px; font-weight: 850; cursor: pointer; box-shadow: 0 0 28px rgba(255, 106, 0, 0.3); transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease; }
 .report-open-btn:hover { transform: translateY(-1px); background: var(--primary-hover, #e94f18); box-shadow: 0 9px 22px rgba(255, 90, 31, 0.24); }
@@ -943,7 +1180,7 @@ const targetCompanyName = computed(() => {
 .upper-left-content section, .upper-left-content article { margin-bottom: 20px; }
 .detail-article-body, .ai-terms-section, .ai-checkpoint-section, .ai-highlight-section, .related-widgets-section {
   background: var(--cream);
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 18px;
   padding: 22px;
   box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
@@ -955,52 +1192,50 @@ const targetCompanyName = computed(() => {
 .related-widgets-section > .section-sub-title {
   color: var(--text1);
 }
-.rewritten-box { display: flex; flex-direction: column; gap: 10px; font-size: 14.5px; color: var(--text1); line-height: 1.8; background: var(--cream-soft); padding: 20px; border-radius: 14px; border: 1px solid var(--border); margin: 0; }
+.rewritten-box { display: flex; flex-direction: column; gap: 10px; font-size: 14.5px; color: var(--text1); line-height: 1.8; background: var(--cream-soft); padding: 20px; border-radius: 14px; border: 1px solid var(--primary-border); margin: 0; }
 .briefing-sentence { margin: 0; padding: 4px 8px; border-radius: 6px; }
 .briefing-sentence.is-highlighted { background: transparent; color: var(--ai); font-weight: inherit; box-shadow: none; }
 .briefing-reference { margin-left: 3px; color: var(--primary, #ff5a1f); font-size: 10.5px; font-weight: 800; vertical-align: super; }
 .highlight-list { display: flex; flex-direction: column; gap: 10px; }
-.highlight-item-box { display: flex; align-items: flex-start; gap: 12px; background: var(--cream); border: 1px solid var(--border); padding: 15px; border-radius: 12px; box-shadow: 0 6px 20px rgba(15, 23, 42, 0.05); }
-.fact-reference { flex-shrink: 0; min-width: 34px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 7px; background: var(--ai-bg-strong, #f5e6d3); color: var(--primary, #ff5a1f); font-size: 12px; font-weight: 800; }
+.highlight-item-box { display: flex; align-items: flex-start; gap: 12px; background: var(--cream); border: 1px solid var(--primary-border); padding: 15px; border-radius: 12px; box-shadow: 0 6px 20px rgba(15, 23, 42, 0.05); }
+.fact-reference { flex-shrink: 0; display: inline-flex; align-items: flex-start; justify-content: center; padding-top: 2px; color: var(--primary, #ff5a1f); font-size: 12px; font-weight: 800; }
 .fact-content { min-width: 0; }
 .hl-sentence { font-size: 14px; line-height: 1.55; font-weight: 800; color: var(--text1); margin: 0; }
 .hl-reason { font-size: 12.5px; line-height: 1.5; color: var(--text3); margin: 6px 0 0; }
 .highlight-empty-state { padding: 40px 20px; border: 1px dashed var(--border); border-radius: 12px; color: var(--text3); font-size: 13px; text-align: center; background: var(--cream-soft); }
 .terms-pill-grid { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; }
-.term-detail-card { position: relative; min-width: 120px; max-width: 100%; background: var(--cream); border-radius: 10px; border: 1px solid var(--border); overflow: hidden; transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease; }
+.term-detail-card { position: relative; min-width: 120px; max-width: 100%; background: var(--cream); border-radius: 10px; border: 1px solid var(--primary-border); overflow: hidden; transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease; }
 .term-detail-card:hover { background: #fff7ed; border-color: #dfc49e; box-shadow: 0 4px 14px rgba(184, 112, 63, 0.08); }
 .term-detail-card[open] { background: var(--ai-bg); border-color: var(--ai-border); box-shadow: 0 4px 14px rgba(184, 112, 63, 0.08); }
 .term-detail-card[open] { flex-basis: 100%; }
-.term-badge-name { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 36px 10px 13px; color: var(--primary); font-size: 12.5px; font-weight: 800; cursor: pointer; list-style: none; user-select: none; }
-.term-detail-card[open] .term-badge-name { padding-right: 76px; }
+.term-badge-name { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 10px 9px 13px; color: var(--primary); font-size: 12.5px; font-weight: 800; cursor: pointer; list-style: none; user-select: none; }
+.term-detail-card[open] .term-badge-name { padding-right: 10px; }
 .term-badge-name::-webkit-details-marker { display: none; }
-.term-toggle-icon { position: absolute; top: 50%; right: 13px; color: var(--ai, #b8703f); font-size: 16px; line-height: 1; transform: translateY(-50%); transition: transform 0.15s ease; }
-.term-detail-card[open] .term-toggle-icon { transform: translateY(-50%) rotate(45deg); }
 .term-explanation-box { padding: 4px 13px 13px; }
 .term-explanation-txt { padding: 0; font-size: 13px; color: var(--text2); margin: 0; line-height: 1.65; }
-.term-save-btn { display: none; position: absolute; top: 5px; right: 39px; z-index: 1; width: 30px; height: 30px; align-items: center; justify-content: center; padding: 0; border: 1px solid var(--primary-border); border-radius: 7px; background: var(--cream); color: var(--primary); cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
-.term-detail-card[open] .term-save-btn { display: inline-flex; }
-.term-save-btn svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
-.term-save-btn:hover:not(:disabled) { border-color: var(--primary); background: var(--primary); color: #ffffff; }
-.term-save-btn.saved { border-color: var(--primary); background: var(--primary); color: #ffffff; }
+.term-save-btn { width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; margin-left: auto; padding: 0; border: 1px solid transparent; border-radius: 7px; background: transparent; color: var(--text3); cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
+.term-save-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linejoin: round; }
+.term-save-btn:hover:not(:disabled) { border-color: var(--primary-border); background: var(--primary-bg); color: var(--primary); }
+.term-save-btn.saved { border-color: var(--primary-border); background: var(--primary-bg); color: var(--primary); }
 .term-save-btn.saved svg { fill: currentColor; }
 .term-save-btn:disabled { cursor: default; opacity: 0.5; }
 .term-save-error { margin: 8px 0 0; color: #dc2626; font-size: 10.5px; line-height: 1.4; }
-.checkpoint-list { padding: 15px 15px 15px 34px; color: var(--text1); font-size: 13.5px; line-height: 1.75; margin: 0; background: var(--cream); border: 1px solid var(--border); border-radius: 12px; }
+.checkpoint-list { padding: 15px 15px 15px 34px; color: var(--text1); font-size: 13.5px; line-height: 1.75; margin: 0; background: var(--cream); border: 1px solid var(--primary-border); border-radius: 12px; }
 .checkpoint-list li { margin-bottom: 6px; list-style-type: square; }
 .related-widgets-section { margin-top: 0; }
 .related-widgets-panel { width: 100%; }
-.widget-tabs-bar { display: flex; background: var(--cream-soft); border: 1px solid var(--border); padding: 5px; border-radius: 999px; gap: 4px; }
+.widget-tabs-bar { display: flex; background: var(--cream-soft); border: 1px solid var(--primary-border); padding: 5px; border-radius: 999px; gap: 4px; }
 .tab-btn { flex: 1; border: none; background: transparent; padding: 10px 0; font-size: 13px; font-weight: 700; color: var(--text2); border-radius: 999px; cursor: pointer; transition: all 0.15s ease; }
 .tab-btn:hover { color: var(--primary, #ff5a1f); }
-.tab-btn.active { background: linear-gradient(90deg, #ff5500, #ff9200); color: #ffffff; font-weight: 850; box-shadow: 0 0 20px rgba(255, 106, 0, 0.25); }
-.widget-content-body { background: var(--cream); border: 1px solid var(--border); border-radius: 16px; padding: 20px; min-height: 420px; display: flex; flex-direction: column; margin-top: 14px; overflow: hidden; }
+.tab-btn.active { background: var(--cream); color: var(--primary); font-weight: 850; box-shadow: inset 0 0 0 1px var(--primary-border), 0 4px 12px rgba(15, 23, 42, 0.05); }
+.widget-content-body { background: var(--cream); border: 1px solid var(--primary-border); border-radius: 16px; padding: 20px; min-height: 420px; display: flex; flex-direction: column; margin-top: 14px; overflow: hidden; }
 .pane-title-info { margin-bottom: 16px; }
 .pane-title-info h4 { font-size: 11px; font-weight: 800; color: var(--text3); letter-spacing: 0.04em; margin: 0 0 2px 0; }
 .pane-title-info p { font-size: 12px; color: var(--text2); margin: 0; }
 .pane-title-info p span { color: var(--primary, #ff5a1f); font-weight: 700; }
 .tab-pane-view { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .pane-component-scroller { flex: 1; overflow-y: auto; overflow-x: hidden; padding-right: 2px; }
+.youtube-pane .pane-component-scroller { display: flex; min-height: 420px; }
 .pane-component-scroller::-webkit-scrollbar { width: 4px; }
 .pane-component-scroller::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
 .empty-pane-box { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 12.5px; color: var(--text3); border: 1px dashed var(--border); border-radius: 8px; }
@@ -1080,39 +1315,33 @@ const targetCompanyName = computed(() => {
   perspective: 1600px;
 }
 .report-paper {
+  --ai: #ff7a1a;
+  --ai-bg: #fff7ed;
+  --ai-bg-strong: #ffe7cc;
+  --ai-border: #ffc58f;
   position: relative;
   width: min(1040px, 100%);
   min-height: calc(100vh - 64px);
   padding: 52px 58px;
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.6) 1px, transparent 1px),
-    radial-gradient(circle at 90% 0%, rgba(255,106,0,.08), transparent 22%),
-    var(--cream);
-  background-size: 100% 32px;
+  background: var(--cream);
   border: 1px solid var(--border);
   border-radius: 18px;
-  box-shadow: 0 34px 100px rgba(15, 23, 42, 0.18), 0 0 42px rgba(255,106,0,.06);
+  box-shadow: 0 34px 100px rgba(15, 23, 42, 0.16), 0 0 48px rgba(255, 138, 31, 0.1);
   color: var(--text1);
   transform-origin: right center;
 }
 .report-paper::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 28px;
-  width: 1px;
-  background: #f6c08c;
+  content: none;
 }
 .report-close-btn { position: absolute; top: 20px; right: 22px; width: 36px; height: 36px; border: 1px solid var(--border); border-radius: 50%; background: var(--cream); color: var(--text3); font-size: 23px; line-height: 1; cursor: pointer; transition: color 0.15s ease, border-color 0.15s ease, transform 0.15s ease; }
-.report-close-btn:hover { color: var(--ai, #b8703f); border-color: var(--ai-border, #ecd9bc); transform: rotate(4deg); }
+.report-close-btn:hover { color: var(--ai, #ff7a1a); border-color: var(--ai-border, #ffc58f); transform: rotate(4deg); }
 .report-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; padding-bottom: 24px; border-bottom: 2px solid var(--border); }
-.report-kicker { margin: 0 0 8px; color: var(--ai, #b8703f); font-size: 10.5px; font-weight: 850; letter-spacing: 0.14em; }
+.report-kicker { margin: 0 0 8px; color: var(--ai, #ff7a1a); font-size: 10.5px; font-weight: 850; letter-spacing: 0.14em; }
 .report-header h2 { margin: 0; color: var(--text1); font-size: 34px; line-height: 1.2; letter-spacing: -0.04em; }
 .report-news-title { max-width: 800px; margin: 14px 0 0; color: var(--text2); font-size: 16px; font-weight: 600; line-height: 1.65; }
-.report-score { flex-shrink: 0; min-width: 120px; padding: 16px; border: 1px solid var(--ai-border, #ecd9bc); background: var(--ai-bg); text-align: center; }
-.report-score span { display: block; color: var(--ai, #b8703f); font-size: 10.5px; font-weight: 750; }
-.report-score strong { display: inline-block; margin-top: 5px; color: var(--ai, #b8703f); font-size: 32px; line-height: 1; }
+.report-score { flex-shrink: 0; min-width: 120px; padding: 16px; border: 1px solid var(--ai-border, #ffc58f); background: var(--cream); text-align: center; box-shadow: 0 10px 24px rgba(255, 122, 26, 0.08); }
+.report-score span { display: block; color: var(--ai, #ff7a1a); font-size: 10.5px; font-weight: 750; }
+.report-score strong { display: inline-block; margin-top: 5px; color: var(--ai, #ff7a1a); font-size: 32px; line-height: 1; }
 .report-score small { color: var(--text3); font-size: 11px; }
 .report-meta { display: flex; align-items: center; gap: 10px; padding: 16px 0; border-bottom: 1px solid var(--border); color: var(--text2); font-size: 13px; }
 .report-meta > span:not(:last-child)::after { content: "/"; margin-left: 10px; color: var(--border); }
@@ -1121,11 +1350,14 @@ const targetCompanyName = computed(() => {
 .report-sentiment.down { background: var(--signal-down-bg, #eff6ff); color: var(--signal-down, #2563eb); }
 .report-sentiment.neutral { background: var(--signal-neutral-bg, #f1f5f9); color: var(--signal-neutral, #64748b); }
 .report-section { margin-top: 34px; }
-.report-section-label { margin: 0 0 6px; color: var(--ai, #b8703f); font-size: 10.5px; font-weight: 850; letter-spacing: 0.13em; }
+.report-company-section { margin-top: 22px; padding: 16px 0 0; }
+.report-company-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.report-company-list span { padding: 7px 11px; border: 1px solid var(--primary-border); border-radius: 999px; background: var(--primary-bg); color: var(--primary); font-size: 12px; font-weight: 850; }
+.report-section-label { margin: 0 0 6px; color: var(--ai, #ff7a1a); font-size: 10.5px; font-weight: 850; letter-spacing: 0.13em; }
 .report-section h3 { margin: 0 0 16px; color: var(--text1); font-size: 20px; }
 .report-fact-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
 .report-fact-list li { display: flex; gap: 10px; padding: 13px; border: 1px solid var(--border); background: var(--cream); }
-.report-fact-list li > span { flex-shrink: 0; color: var(--ai, #b8703f); font-size: 11px; font-weight: 850; }
+.report-fact-list li > span { flex-shrink: 0; color: var(--ai, #ff7a1a); font-size: 11px; font-weight: 850; }
 .report-fact-list p { margin: 0; color: var(--text1); font-size: 14.5px; font-weight: 650; line-height: 1.65; }
 .report-analysis-grid { margin-top: 30px; }
 .report-impact-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 16px; }
@@ -1135,9 +1367,17 @@ const targetCompanyName = computed(() => {
 .impact-scale-item { display: grid; grid-template-columns: 90px 1fr; align-items: center; gap: 14px; padding: 11px 14px; border: 1px solid var(--border); background: var(--cream); color: var(--text2); }
 .impact-scale-item strong { color: var(--text1); font-size: 14px; }
 .impact-scale-item span { font-size: 14px; line-height: 1.5; }
-.impact-scale-item.active { border-color: var(--ai-border, #ecd9bc); background: var(--ai-bg, #fdf6ee); box-shadow: inset 4px 0 0 var(--ai, #b8703f); }
-.impact-scale-item.active strong, .impact-scale-item.active span { color: var(--ai, #b8703f); font-weight: 750; }
+.impact-scale-item.active { border-color: var(--ai-border, #ffc58f); background: var(--ai-bg, #fff7ed); box-shadow: inset 4px 0 0 var(--ai, #ff7a1a); }
+.impact-scale-item.active strong, .impact-scale-item.active span { color: var(--ai, #ff7a1a); font-weight: 750; }
 .report-sentiment-section { padding-top: 4px; }
+.report-reason-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.report-reason-grid article { padding: 18px; border: 1px solid var(--ai-border); background: var(--cream); box-shadow: inset 4px 0 0 var(--ai, #ff7a1a); }
+.report-reason-grid h3 { margin-bottom: 10px; }
+.report-reason-grid p:last-child { margin: 0; color: var(--text2); font-size: 14.5px; line-height: 1.7; }
+.report-signal-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.report-signal-grid article { padding: 16px; border: 1px solid var(--border); background: var(--cream); }
+.report-signal-grid strong { display: block; color: var(--text1); font-size: 14px; margin-bottom: 8px; }
+.report-signal-grid p { margin: 0; color: var(--text2); font-size: 13.5px; line-height: 1.65; }
 .sentiment-decision-card { display: grid; grid-template-columns: 82px 1fr; gap: 18px; align-items: flex-start; padding: 20px; border: 1px solid var(--border); background: var(--cream-soft); }
 .sentiment-decision-label { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; border-radius: 8px; font-size: 15px; font-weight: 850; }
 .sentiment-decision-card h4 { margin: 0 0 8px; color: var(--text1); font-size: 17px; }
@@ -1151,9 +1391,9 @@ const targetCompanyName = computed(() => {
 .report-checkpoints ul { display: flex; flex-direction: column; gap: 9px; margin: 0; padding: 16px; background: rgba(248,250,252,0.9); border: 1px solid var(--border); list-style: none; }
 .report-checkpoints li { position: relative; padding: 12px 14px 12px 36px; border-bottom: 1px solid #e2e8f0; color: var(--text2); font-size: 14.5px; line-height: 1.65; }
 .report-checkpoints li:last-child { border-bottom: 0; }
-.report-checkpoints li::before { content: counter(list-item, decimal-leading-zero); position: absolute; left: 8px; top: 12px; color: var(--ai, #b8703f); font-size: 11px; font-weight: 850; }
+.report-checkpoints li::before { content: counter(list-item, decimal-leading-zero); position: absolute; left: 8px; top: 12px; color: var(--ai, #ff7a1a); font-size: 11px; font-weight: 850; }
 .report-conclusion { display: grid; grid-template-columns: 120px 1fr; gap: 20px; margin-top: 30px; padding: 18px 20px; border-top: 2px solid var(--border); border-bottom: 1px solid var(--border); background: var(--cream); }
-.report-conclusion span { color: var(--ai, #b8703f); font-size: 12.5px; font-weight: 850; }
+.report-conclusion span { color: var(--ai, #ff7a1a); font-size: 12.5px; font-weight: 850; }
 .report-conclusion p { margin: 0; color: var(--text1); font-size: 15px; line-height: 1.75; }
 
 .report-page-turn-enter-active { transition: opacity 0.24s ease; }
@@ -1201,6 +1441,8 @@ const targetCompanyName = computed(() => {
   .report-header h2 { font-size: 25px; }
   .report-score { width: 100%; }
   .report-fact-list { grid-template-columns: 1fr; }
+  .report-reason-grid,
+  .report-signal-grid { grid-template-columns: 1fr; }
   .report-impact-heading { flex-direction: column; }
   .impact-scale-item { grid-template-columns: 72px 1fr; }
   .sentiment-decision-card { grid-template-columns: 1fr; }
