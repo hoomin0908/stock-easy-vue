@@ -29,44 +29,131 @@
           <p>로그인 후 관심 기업을 등록할 수 있습니다.</p>
         </div>
 
-        <div v-else-if="isInterestsLoading" class="empty-state-box">
-          <p>관심 기업을 불러오는 중입니다...</p>
-        </div>
-
-        <div v-else-if="interestsError" class="empty-state-box error-state-box">
-          <p>{{ interestsError }}</p>
-        </div>
-
-        <div v-else-if="interestStocks.length === 0" class="empty-state-box">
-          <svg viewBox="0 0 24 24" class="empty-icon"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" /></svg>
-          <p>아직 등록한 관심 기업이 없습니다.</p>
-        </div>
-
-        <div v-else class="stock-list-wrapper">
-          <button
-            v-for="interest in interestStocks"
-            :key="interest.id"
-            type="button"
-            class="stock-item-card"
-            :class="{
-              'filter-active':
-                String(route.query.stockId) === String(interest.stock.id)
-            }"
-            @click="selectInterestStock(interest)"
-          >
-            <div class="stock-avatar-badge">
-              {{ interest.stock.stock_name.slice(0, 2) }}
+        <template v-else>
+          <section class="interest-group">
+            <div class="interest-heading">
+              <h3>등록한 관심 기업</h3>
+              <button
+                type="button"
+                class="refresh-btn"
+                :disabled="isInterestsLoading"
+                title="새로고침"
+                @click="loadInterestStocks"
+              >
+                ↻
+              </button>
             </div>
-            <div class="stock-meta-info">
-              <div class="stock-title-name">{{ interest.stock.stock_name }}</div>
-              <div class="stock-price-tag">{{ interest.stock.stock_code }}</div>
+
+            <div v-if="isInterestsLoading" class="compact-state">
+              관심 기업을 불러오는 중입니다...
             </div>
-            <div
-              v-if="String(route.query.stockId) === String(interest.stock.id)"
-              class="active-indicator-dot"
-            ></div>
-          </button>
-        </div>
+
+            <div v-else-if="interestsError" class="compact-state error-state-box">
+              {{ interestsError }}
+            </div>
+
+            <div v-else-if="interestStocks.length === 0" class="compact-state">
+              아직 등록한 관심 기업이 없습니다.
+            </div>
+
+            <div v-else class="stock-list-wrapper">
+              <div
+                v-for="interest in interestStocks"
+                :key="interest.id"
+                class="interest-row"
+                :class="{
+                  'filter-active':
+                    String(route.query.stockId) === String(interest.stock.id)
+                }"
+              >
+                <button
+                  type="button"
+                  class="interest-main-btn"
+                  @click="selectInterestStock(interest)"
+                >
+                  <span class="stock-avatar-badge">
+                    {{ interest.stock.stock_name.slice(0, 2) }}
+                  </span>
+                  <span class="stock-meta-info">
+                    <strong class="stock-title-name">{{ interest.stock.stock_name }}</strong>
+                    <small class="stock-price-tag">{{ interest.stock.stock_code }}</small>
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  class="delete-interest-btn"
+                  :disabled="deletingInterestId === interest.id"
+                  :title="`${interest.stock.stock_name} 관심 기업 삭제`"
+                  @click="removeInterestStock(interest)"
+                >
+                  {{ deletingInterestId === interest.id ? "…" : "×" }}
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section class="interest-group company-search-group">
+            <div class="interest-heading">
+              <h3>기업 찾기</h3>
+              <span class="result-count">최대 20개</span>
+            </div>
+
+            <div class="company-search-box">
+              <svg viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input
+                v-model.trim="stockSearch"
+                type="search"
+                placeholder="기업명 또는 종목코드 검색"
+                aria-label="기업 검색"
+              />
+            </div>
+
+            <p v-if="mutationError" class="mutation-error">{{ mutationError }}</p>
+
+            <div v-if="isStocksLoading" class="compact-state">
+              기업 목록을 불러오는 중입니다...
+            </div>
+
+            <div v-else-if="stocksError" class="compact-state error-state-box">
+              {{ stocksError }}
+            </div>
+
+            <div v-else-if="displayStocks.length === 0" class="compact-state">
+              검색 결과가 없습니다.
+            </div>
+
+            <div v-else class="company-search-results">
+              <div v-for="stock in displayStocks" :key="stock.id" class="company-result-row">
+                <div class="company-result-info">
+                  <strong>{{ stock.stock_name }}</strong>
+                  <small>{{ stock.stock_code }}</small>
+                </div>
+
+                <button
+                  v-if="isRegisteredStock(stock.id)"
+                  type="button"
+                  class="registration-btn registered"
+                  disabled
+                >
+                  등록됨
+                </button>
+                <button
+                  v-else
+                  type="button"
+                  class="registration-btn"
+                  :disabled="addingStockId === stock.id"
+                  @click="addInterestStock(stock)"
+                >
+                  {{ addingStockId === stock.id ? "등록 중" : "추가" }}
+                </button>
+              </div>
+            </div>
+          </section>
+        </template>
       </div>
 
       <div v-else-if="activeSection === 'sector'">
@@ -113,10 +200,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onBeforeUnmount, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuth } from "../../services/auth";
-import { fetchInterestStocks } from "../../services/api";
+import {
+  createInterestStock,
+  deleteInterestStock,
+  fetchInterestStocks,
+  fetchStocks,
+} from "../../services/api";
 
 const route = useRoute();
 const router = useRouter();
@@ -125,8 +217,21 @@ const activeSection = ref("watchlist");
 const themeSearch = ref("");
 const { currentUser, isAuthenticated } = useAuth();
 const interestStocks = ref([]);
+const stocks = ref([]);
+const stockSearch = ref("");
 const isInterestsLoading = ref(false);
+const isStocksLoading = ref(false);
 const interestsError = ref("");
+const stocksError = ref("");
+const mutationError = ref("");
+const addingStockId = ref(null);
+const deletingInterestId = ref(null);
+let searchTimer = null;
+
+const displayStocks = computed(() => stocks.value.slice(0, 20));
+const registeredStockIds = computed(
+  () => new Set(interestStocks.value.map((interest) => interest.stock.id))
+);
 
 const userDisplayName = computed(() => {
   if (!isAuthenticated.value) return "로그인이 필요합니다";
@@ -147,6 +252,10 @@ const sections = [
 function selectSection(key) {
   activeSection.value = key;
   if (!isOpen.value) isOpen.value = true;
+  if (key === "watchlist" && currentUser.value) {
+    loadInterestStocks();
+    loadStocks();
+  }
 }
 
 async function loadInterestStocks() {
@@ -181,6 +290,90 @@ function selectInterestStock(interest) {
   });
 }
 
+function normalizeList(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.results)) return data.results;
+  return [];
+}
+
+async function loadStocks() {
+  if (!currentUser.value) {
+    stocks.value = [];
+    stocksError.value = "";
+    return;
+  }
+
+  isStocksLoading.value = true;
+  stocksError.value = "";
+
+  try {
+    const params = stockSearch.value
+      ? { search: stockSearch.value }
+      : {};
+    const { data } = await fetchStocks(params);
+    stocks.value = normalizeList(data);
+  } catch (error) {
+    console.error("기업 목록 조회 실패", error);
+    stocks.value = [];
+    stocksError.value = "기업 목록을 불러오지 못했습니다.";
+  } finally {
+    isStocksLoading.value = false;
+  }
+}
+
+function isRegisteredStock(stockId) {
+  return registeredStockIds.value.has(stockId);
+}
+
+async function addInterestStock(stock) {
+  if (
+    !currentUser.value ||
+    addingStockId.value !== null ||
+    isRegisteredStock(stock.id)
+  ) {
+    return;
+  }
+
+  addingStockId.value = stock.id;
+  mutationError.value = "";
+
+  try {
+    await createInterestStock(stock.id);
+    await loadInterestStocks();
+  } catch (error) {
+    console.error("관심 기업 등록 실패", error);
+    mutationError.value =
+      error.response?.data?.detail ||
+      error.response?.data?.stock_id?.[0] ||
+      "관심 기업을 등록하지 못했습니다.";
+  } finally {
+    addingStockId.value = null;
+  }
+}
+
+async function removeInterestStock(interest) {
+  if (deletingInterestId.value !== null) return;
+  if (!window.confirm(`${interest.stock.stock_name}을(를) 관심 기업에서 삭제하시겠습니까?`)) return;
+
+  deletingInterestId.value = interest.id;
+  mutationError.value = "";
+
+  try {
+    await deleteInterestStock(interest.id);
+    if (String(route.query.stockId) === String(interest.stock.id)) {
+      await router.push("/");
+    }
+    await loadInterestStocks();
+  } catch (error) {
+    console.error("관심 기업 삭제 실패", error);
+    mutationError.value =
+      error.response?.data?.detail ||
+      "관심 기업을 삭제하지 못했습니다.";
+  } finally {
+    deletingInterestId.value = null;
+  }
+}
+
 // 💡 10대 인기 테마 하드코딩 리스트 구성 완료
 const popularThemes = [
   "전체", 
@@ -211,8 +404,35 @@ function handleThemeClick(theme) {
 
 const savedTerms = ref([]);
 
-onMounted(loadInterestStocks);
-watch(currentUser, loadInterestStocks);
+onMounted(() => {
+  if (currentUser.value) {
+    loadInterestStocks();
+    loadStocks();
+  }
+});
+
+watch(currentUser, (user) => {
+  stockSearch.value = "";
+  mutationError.value = "";
+
+  if (user) {
+    loadInterestStocks();
+    loadStocks();
+  } else {
+    interestStocks.value = [];
+    stocks.value = [];
+  }
+});
+
+watch(stockSearch, () => {
+  if (!currentUser.value) return;
+  window.clearTimeout(searchTimer);
+  searchTimer = window.setTimeout(loadStocks, 300);
+});
+
+onBeforeUnmount(() => {
+  window.clearTimeout(searchTimer);
+});
 </script>
 
 <style scoped>
@@ -234,16 +454,42 @@ watch(currentUser, loadInterestStocks);
 .clear-filter-btn { border: none; background: transparent; color: var(--primary); cursor: pointer; font-size: 12px; }
 .empty-state-box { padding: 24px 0; text-align: center; color: var(--text3); }
 .empty-icon { width: 22px; height: 24px; stroke: var(--text3); stroke-width: 1.5; fill: none; margin-bottom: 6px; }
+.interest-group { margin-bottom: 20px; }
+.interest-group + .interest-group { padding-top: 16px; border-top: 1px solid var(--border); }
+.interest-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.interest-heading h3 { color: var(--text1); font-size: 12.5px; font-weight: 700; }
+.refresh-btn { width: 25px; height: 25px; border: 1px solid var(--border); border-radius: 6px; background: #fff; color: var(--text3); cursor: pointer; }
+.refresh-btn:hover { color: var(--primary); border-color: var(--primary-border); }
+.refresh-btn:disabled { opacity: 0.45; cursor: wait; }
+.result-count { color: var(--text3); font-size: 10px; }
+.compact-state { padding: 16px 10px; border-radius: var(--radius); background: var(--bg2); color: var(--text3); font-size: 11px; line-height: 1.5; text-align: center; }
 .stock-list-wrapper { display: flex; flex-direction: column; gap: 6px; }
-.stock-item-card { width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: var(--radius); border: 1px solid transparent; cursor: pointer; position: relative; transition: all 0.2s ease; background: var(--bg2); font: inherit; }
-.stock-item-card:hover { background: #ffffff; border-color: var(--border); transform: translateX(2px); }
-.stock-item-card.filter-active { background: var(--primary-bg); border-color: var(--primary-border); }
+.interest-row { display: flex; align-items: center; border: 1px solid transparent; border-radius: var(--radius); background: var(--bg2); transition: all 0.2s ease; }
+.interest-row:hover { background: #fff; border-color: var(--border); transform: translateX(2px); }
+.interest-row.filter-active { background: var(--primary-bg); border-color: var(--primary-border); }
+.interest-main-btn { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 9px; border: none; background: transparent; cursor: pointer; font: inherit; }
 .stock-avatar-badge { width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0; background: #ffffff; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--text2); }
-.stock-meta-info { flex: 1; min-width: 0; text-align: left; }
+.stock-meta-info { flex: 1; min-width: 0; display: flex; flex-direction: column; text-align: left; }
 .stock-title-name { font-size: 13px; font-weight: 600; color: var(--text1); }
 .stock-price-tag { font-size: 11px; color: var(--text3); margin-top: 2px; }
-.active-indicator-dot { width: 6px; height: 6px; background: var(--primary); border-radius: 50%; position: absolute; right: 12px; top: calc(50% - 3px); }
+.delete-interest-btn { width: 28px; height: 28px; margin-right: 6px; flex-shrink: 0; border: none; border-radius: 6px; background: transparent; color: var(--text3); font-size: 17px; cursor: pointer; }
+.delete-interest-btn:hover { background: #fff1f2; color: #dc2626; }
+.delete-interest-btn:disabled { opacity: 0.45; cursor: wait; }
 .error-state-box { color: #dc2626; background: #fff1f2; border-radius: var(--radius); }
+.company-search-box { position: relative; display: flex; align-items: center; margin-bottom: 10px; }
+.company-search-box svg { position: absolute; left: 10px; width: 14px; height: 14px; stroke: var(--text3); stroke-width: 2; fill: none; pointer-events: none; }
+.company-search-box input { width: 100%; padding: 8px 10px 8px 31px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg2); outline: none; font-size: 11.5px; }
+.company-search-box input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(255, 90, 31, 0.08); }
+.company-search-results { display: flex; flex-direction: column; gap: 5px; max-height: 280px; overflow-y: auto; }
+.company-result-row { display: flex; align-items: center; gap: 8px; padding: 8px 9px; border: 1px solid var(--border); border-radius: var(--radius); background: #fff; }
+.company-result-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.company-result-info strong { overflow: hidden; color: var(--text1); font-size: 11.5px; text-overflow: ellipsis; white-space: nowrap; }
+.company-result-info small { color: var(--text3); font-size: 10px; }
+.registration-btn { flex-shrink: 0; padding: 5px 8px; border: 1px solid var(--primary-border); border-radius: 6px; background: var(--primary-bg); color: var(--primary); font-size: 10px; font-weight: 700; cursor: pointer; }
+.registration-btn:hover { background: var(--primary); color: #fff; }
+.registration-btn:disabled { cursor: not-allowed; }
+.registration-btn.registered { border-color: var(--border); background: var(--bg3); color: var(--text3); }
+.mutation-error { margin: 0 0 9px; padding: 8px 9px; border-radius: 6px; background: #fff1f2; color: #dc2626; font-size: 10.5px; line-height: 1.4; }
 .add-btn { display: flex; align-items: center; gap: 6px; padding: 10px; font-size: 12.5px; color: var(--text3); border: 1px dashed var(--border); border-radius: var(--radius); margin-top: 12px; cursor: pointer; justify-content: center; transition: all 0.15s ease; background: #fff; }
 .add-btn:hover { border-color: var(--primary-border); color: var(--primary); background: var(--primary-bg); }
 .word-pills { display: flex; flex-wrap: wrap; gap: 6px; }

@@ -57,6 +57,16 @@ export function fetchInterestStocks() {
   return api.get("/stocks/interests/");
 }
 
+// POST /api/v1/stocks/interests/ → 관심 기업 등록
+export function createInterestStock(stockId) {
+  return api.post("/stocks/interests/", { stock_id: stockId });
+}
+
+// DELETE /api/v1/stocks/interests/:interestStockId/ → 관심 기업 삭제
+export function deleteInterestStock(interestStockId) {
+  return api.delete(`/stocks/interests/${interestStockId}/`);
+}
+
 // GET /api/v1/news/stocks/:stockId/ → 관심 기업별 뉴스 조회
 export function fetchNewsByStock(stockId) {
   return api.get(`/news/stocks/${stockId}/`);
