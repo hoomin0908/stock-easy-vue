@@ -1,10 +1,11 @@
 <template>
   <main class="mypage-content">
-    <section v-if="activeTab === 'favorites'" class="content-section">
+    <section class="content-section">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">Favorites</p>
-          <h1>관심 목록</h1>
+          <p class="eyebrow">My Page</p>
+          <h1>마이페이지</h1>
+          <p class="section-description">관심 목록, 활동 내역, 계정 설정을 한 화면에서 확인합니다.</p>
         </div>
       </div>
 
@@ -18,7 +19,7 @@
           <div v-else-if="interestStocks.length === 0" class="compact-state">등록한 관심 기업이 없습니다.</div>
           <div v-else class="stock-card-grid">
             <button
-              v-for="interest in interestStocks"
+              v-for="interest in visibleInterestStocks"
               :key="interest.id"
               type="button"
               class="stock-card"
@@ -29,6 +30,14 @@
               <span>관련 뉴스 보기</span>
             </button>
           </div>
+          <button
+            v-if="interestStocks.length > 2"
+            type="button"
+            class="more-toggle-btn"
+            @click="showAllInterests = !showAllInterests"
+          >
+            {{ showAllInterests ? "접기" : `더보기 ${interestStocks.length - 2}개` }}
+          </button>
         </section>
 
         <section class="data-panel">
@@ -39,52 +48,52 @@
           <div v-if="isTermsLoading" class="compact-state">저장한 용어를 불러오는 중입니다...</div>
           <div v-else-if="savedTerms.length === 0" class="compact-state">저장한 용어가 없습니다.</div>
           <div v-else class="term-list">
-            <article v-for="term in savedTerms" :key="term.id || term.term" class="term-row">
+            <article v-for="term in visibleSavedTerms" :key="term.id || term.term" class="term-row">
               <strong>{{ getTermName(term) }}</strong>
               <p>{{ getTermDescription(term) }}</p>
             </article>
           </div>
-        </section>
-      </div>
-    </section>
-
-    <section v-else-if="activeTab === 'activity'" class="content-section">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">Activity</p>
-          <h1>최근 본 뉴스</h1>
-        </div>
-      </div>
-
-      <section class="data-panel">
-        <div v-if="recentNews.length === 0" class="compact-state">최근 본 뉴스가 없습니다.</div>
-        <div v-else class="recent-news-list">
-          <router-link
-            v-for="news in recentNews"
-            :key="news.id"
-            class="recent-news-row"
-            :to="`/news/${news.id}`"
+          <button
+            v-if="savedTerms.length > 1"
+            type="button"
+            class="more-toggle-btn"
+            @click="showAllTerms = !showAllTerms"
           >
-            <div>
-              <strong>{{ news.title }}</strong>
-              <small>{{ news.publisher || "언론사 정보 없음" }} · {{ formatViewedAt(news.viewedAt) }}</small>
-            </div>
-            <span>보기</span>
-          </router-link>
-        </div>
-      </section>
-    </section>
+            {{ showAllTerms ? "접기" : `더보기 ${savedTerms.length - 1}개` }}
+          </button>
+        </section>
 
-    <section v-else class="content-section">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">Settings</p>
-          <h1>정보 수정</h1>
-        </div>
-      </div>
-
-      <div class="content-grid">
         <section class="data-panel">
+          <div class="panel-title-row">
+            <h2>최근 본 뉴스</h2>
+            <span>{{ recentNews.length }}개</span>
+          </div>
+          <div v-if="recentNews.length === 0" class="compact-state">최근 본 뉴스가 없습니다.</div>
+          <div v-else class="recent-news-list">
+            <router-link
+              v-for="news in visibleRecentNews"
+              :key="news.id"
+              class="recent-news-row"
+              :to="`/news/${news.id}`"
+            >
+              <div>
+                <strong>{{ news.title }}</strong>
+                <small>{{ news.publisher || "언론사 정보 없음" }} · {{ formatViewedAt(news.viewedAt) }}</small>
+              </div>
+              <span>보기</span>
+            </router-link>
+          </div>
+          <button
+            v-if="recentNews.length > 3"
+            type="button"
+            class="more-toggle-btn"
+            @click="showAllRecentNews = !showAllRecentNews"
+          >
+            {{ showAllRecentNews ? "접기" : `더보기 ${recentNews.length - 3}개` }}
+          </button>
+        </section>
+
+        <section class="data-panel settings-panel">
           <h2>계정 설정</h2>
           <label class="field-label">
             닉네임
@@ -97,16 +106,8 @@
           <button type="button" class="primary-btn">변경사항 저장</button>
         </section>
 
-        <section class="data-panel">
-          <h2>알림 및 화면 설정</h2>
-          <label class="toggle-row">
-            <span>관심 종목 주가 변동 알림</span>
-            <input v-model="settings.priceAlert" type="checkbox" />
-          </label>
-          <label class="toggle-row">
-            <span>마케팅 정보 수신</span>
-            <input v-model="settings.marketing" type="checkbox" />
-          </label>
+        <section class="data-panel settings-panel">
+          <h2>화면 설정</h2>
           <label class="toggle-row">
             <span>다크 모드</span>
             <input :checked="themeMode === 'dark'" type="checkbox" @change="toggleTheme" />
@@ -127,14 +128,13 @@
 
 <script setup>
 import { computed, inject, onMounted, reactive, ref, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { useRouter } from "vue-router";
 import { useAuth } from "../services/auth";
 import { fetchInterestStocks, fetchSavedTerms } from "../services/api";
 
 const RECENT_NEWS_KEY = "stockeasy-recent-news";
 const SAVED_TERMS_KEY = "stockeasy-saved-terms";
 
-const route = useRoute();
 const router = useRouter();
 const { currentUser } = useAuth();
 const themeMode = inject("themeMode", ref("light"));
@@ -145,21 +145,22 @@ const savedTerms = ref([]);
 const recentNews = ref([]);
 const isInterestsLoading = ref(false);
 const isTermsLoading = ref(false);
+const showAllInterests = ref(false);
+const showAllTerms = ref(false);
+const showAllRecentNews = ref(false);
 
 const profileForm = reactive({ nickname: "" });
-const settings = reactive({
-  priceAlert: true,
-  marketing: false,
-});
-
-const activeTab = computed(() => {
-  const tab = route.query.tab;
-  return typeof tab === "string" && ["favorites", "activity", "settings"].includes(tab)
-    ? tab
-    : "favorites";
-});
 
 const userEmail = computed(() => currentUser.value?.email || "이메일 정보 없음");
+const visibleInterestStocks = computed(() =>
+  showAllInterests.value ? interestStocks.value : interestStocks.value.slice(0, 2)
+);
+const visibleSavedTerms = computed(() =>
+  showAllTerms.value ? savedTerms.value : savedTerms.value.slice(0, 1)
+);
+const visibleRecentNews = computed(() =>
+  showAllRecentNews.value ? recentNews.value : recentNews.value.slice(0, 3)
+);
 
 function normalizeList(data) {
   if (Array.isArray(data)) return data;
@@ -167,6 +168,10 @@ function normalizeList(data) {
   if (Array.isArray(data?.terms)) return data.terms;
   if (Array.isArray(data?.data)) return data.data;
   return [];
+}
+
+function normalizeSavedTerms(data) {
+  return mergeTerms(normalizeList(data), readLocalList(SAVED_TERMS_KEY));
 }
 
 function getTermName(item) {
@@ -201,7 +206,7 @@ async function loadSavedTerms() {
 
   try {
     const { data } = await fetchSavedTerms();
-    savedTerms.value = normalizeList(data);
+    savedTerms.value = normalizeSavedTerms(data);
   } catch (error) {
     console.error("저장한 용어 조회 실패", error);
     savedTerms.value = readLocalList(SAVED_TERMS_KEY);
@@ -221,6 +226,24 @@ function readLocalList(key) {
   } catch {
     return [];
   }
+}
+
+function getTermKey(item) {
+  return getTermName(item).trim().toLocaleLowerCase("ko-KR");
+}
+
+function mergeTerms(primary, secondary) {
+  const merged = [];
+  const seen = new Set();
+
+  [...primary, ...secondary].forEach((item) => {
+    const key = getTermKey(item);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    merged.push(item);
+  });
+
+  return merged;
 }
 
 function formatViewedAt(value) {
@@ -289,6 +312,11 @@ onMounted(() => {
   font-size: 24px;
   line-height: 1.25;
 }
+.section-description {
+  color: var(--text3);
+  font-size: 12.5px;
+  margin-top: 6px;
+}
 .content-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -296,9 +324,11 @@ onMounted(() => {
 }
 .data-panel {
   border: 1px solid var(--border);
+  border-top-color: var(--primary-border);
   border-radius: var(--radius);
   background: var(--cream);
   padding: 18px;
+  box-shadow: 0 8px 22px rgba(255, 106, 0, 0.035);
 }
 .data-panel h2,
 .panel-title-row h2,
@@ -334,6 +364,7 @@ onMounted(() => {
 }
 .stock-card {
   border: 1px solid var(--border);
+  border-left-color: var(--primary-border);
   border-radius: var(--radius);
   background: var(--bg2);
   padding: 13px;
@@ -373,6 +404,7 @@ onMounted(() => {
 .term-row,
 .recent-news-row {
   border: 1px solid var(--border);
+  border-left-color: var(--primary-border);
   border-radius: var(--radius);
   background: var(--bg2);
   padding: 12px;
@@ -403,6 +435,21 @@ onMounted(() => {
   color: var(--primary);
   font-size: 12px;
   font-weight: 850;
+}
+.more-toggle-btn {
+  width: 100%;
+  margin-top: 10px;
+  border: 1px solid var(--primary-border);
+  border-radius: var(--radius);
+  background: var(--primary-bg);
+  color: var(--primary);
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+.more-toggle-btn:hover {
+  background: rgba(255, 106, 0, 0.16);
 }
 .field-label {
   display: flex;

@@ -3,6 +3,13 @@
     class="sidebar"
     :class="{ collapsed: !isOpen }"
   >
+    <router-link class="sidebar-logo" :to="isAuthenticated ? '/news' : '/'">
+      <div class="logo-badge">
+        <svg viewBox="0 0 16 16"><polyline points="1,12 5,7 9,10 15,3" /></svg>
+      </div>
+      <span v-if="isOpen">STOCKEASY</span>
+    </router-link>
+
     <button class="toggle-btn" :title="isOpen ? '사이드바 닫기' : '사이드바 열기'" @click="isOpen = !isOpen">
       <svg viewBox="0 0 24 24" :style="{ transform: isOpen ? 'none' : 'rotate(180deg)' }">
         <rect x="3" y="4" width="18" height="16" rx="2" />
@@ -229,9 +236,6 @@
         >
           <div class="user-display-name">{{ userDisplayName }}</div>
         </button>
-        <button v-if="isOpen" class="icon-btn-sm" title="정보 수정" @click="goToMyPage('settings')">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
-        </button>
       </div>
     </div>
   </aside>
@@ -289,14 +293,16 @@ const sections = [
   { key: "watchlist", label: "내 관심 기업", icon: '<polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />' },
   { key: "recommended", label: "추천 테마", icon: '<path d="M12 3l1.8 4.4L18 9.2l-4.2 1.8L12 15.5 10.2 11 6 9.2l4.2-1.8L12 3z" /><path d="M18.5 15l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9.9-2.1z" />' },
   { key: "sector", label: "인기 테마", icon: '<rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" />' },
-  { key: "mypage-favorites", label: "관심 목록", icon: '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z" />' },
-  { key: "mypage-activity", label: "활동 내역", icon: '<path d="M3 12h4l3 8 4-16 3 8h4" />' },
-  { key: "mypage-settings", label: "정보 수정", icon: '<circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 8.92 4.6h0A1.65 1.65 0 0 0 10 3.09V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />' }
 ];
 
 function selectSection(key) {
-  if (key.startsWith("mypage-")) {
-    goToMyPage(key.replace("mypage-", ""));
+  const isSameSection = activeSection.value === key;
+
+  if (
+    isSameSection &&
+    (route.path !== "/news" || route.params.id || Object.keys(route.query).length > 0)
+  ) {
+    router.push("/news");
     return;
   }
 
@@ -312,15 +318,11 @@ function selectSection(key) {
 }
 
 function isSectionActive(key) {
-  if (key.startsWith("mypage-")) {
-    return route.path === "/mypage" && route.query.tab === key.replace("mypage-", "");
-  }
-
   return activeSection.value === key && route.path !== "/mypage";
 }
 
-function goToMyPage(tab) {
-  router.push({ path: "/mypage", query: { tab } });
+function goToMyPage() {
+  router.push({ path: "/mypage" });
 }
 
 async function loadInterestStocks() {
@@ -641,15 +643,21 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.sidebar { width: 250px; flex-shrink: 0; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 18px 0 0; transition: width 0.25s ease; background: var(--cream); overflow: visible; position: relative; }
+.sidebar { width: 250px; flex-shrink: 0; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 12px 0 0; transition: width 0.25s ease; background: var(--cream); overflow: visible; position: relative; }
 .sidebar.collapsed { width: 68px; }
-.toggle-btn { width: 34px; height: 34px; margin: 0 0 14px 16px; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 8px; color: var(--text2); transition: all 0.2s ease; }
+.sidebar-logo { min-height: 44px; display: flex; align-items: center; gap: 9px; margin: 0 12px 8px; padding: 6px 8px; color: var(--text1); font-size: 17px; font-weight: 850; letter-spacing: 0; overflow: hidden; }
+.sidebar.collapsed .sidebar-logo { justify-content: center; padding: 6px 0; }
+.logo-badge { width: 32px; height: 32px; border-radius: 9px; background: var(--primary); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 22px rgba(255, 106, 0, 0.32); flex-shrink: 0; }
+.logo-badge svg { width: 14px; height: 14px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; }
+.toggle-btn { width: 34px; height: 34px; margin: 0 0 12px 16px; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 8px; color: var(--text2); transition: all 0.2s ease; }
 .toggle-btn:hover { background: var(--bg2); color: var(--text1); }
 .toggle-btn svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.8; fill: none; transition: transform 0.25s ease; }
 .section-nav { display: flex; flex-direction: column; gap: 4px; padding: 0 12px; }
 .section-btn { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: none; background: transparent; border-radius: var(--radius); cursor: pointer; color: var(--text2); font-size: 13.5px; white-space: nowrap; overflow: hidden; transition: all 0.2s ease; }
 .section-btn:hover { background: var(--bg2); color: var(--text1); }
 .section-btn.active { background: linear-gradient(90deg, rgba(255,106,0,.12), rgba(255,106,0,.03)); color: var(--primary); font-weight: 750; box-shadow: inset 3px 0 0 var(--primary); }
+.sidebar.collapsed .section-btn.active { background: transparent; color: var(--text2); box-shadow: none; font-weight: inherit; }
+.sidebar.collapsed .section-btn.active:hover { background: var(--bg2); color: var(--text1); }
 .section-btn svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.8; fill: none; flex-shrink: 0; }
 .section-label { overflow: hidden; text-overflow: ellipsis; }
 .section-content { flex: 1; overflow-y: auto; padding: 16px 16px 0; margin-top: 4px; border-top: 1px solid var(--border); display: flex; flex-direction: column; }
@@ -684,11 +692,11 @@ onBeforeUnmount(() => {
 .company-card-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; text-align: left; }
 .company-card-info strong { overflow: hidden; color: var(--text2); font-size: 12.5px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
 .company-card-info small { color: var(--text3); font-size: 10.5px; line-height: 1; }
-.interest-sector-row { display: flex; align-items: center; gap: 6px; border-radius: var(--radius); transition: background 0.15s ease; }
-.interest-sector-row:hover { background: var(--bg2); }
-.interest-sector-row.active { background: var(--primary-bg); }
-.interest-sector-row.active .luxury-sector-chip { color: var(--primary); border-color: var(--primary-border); font-weight: 600; }
-.interest-sector-chip { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.interest-sector-row { display: flex; align-items: center; gap: 6px; border: 1px solid transparent; border-radius: var(--radius); padding: 2px 5px 2px 0; transition: background 0.15s ease, border-color 0.15s ease; }
+.interest-sector-row:hover { background: var(--bg2); border-color: var(--border); }
+.interest-sector-row.active { background: var(--primary-bg); border-color: var(--primary-border); }
+.interest-sector-row.active .luxury-sector-chip { color: var(--primary); font-weight: 600; }
+.interest-sector-chip { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; border-color: transparent !important; background: transparent !important; }
 .interest-sector-chip strong { max-width: 100%; overflow: hidden; color: inherit; font-size: inherit; font-weight: inherit; text-overflow: ellipsis; white-space: nowrap; }
 .interest-sector-chip small { color: var(--text3); font-size: 10.5px; line-height: 1.2; }
 .interest-sector-row.active .interest-sector-chip small { color: var(--primary); opacity: 0.74; }

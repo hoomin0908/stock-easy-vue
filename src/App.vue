@@ -1,11 +1,13 @@
 <template>
   <div class="app" :class="{ 'theme-dark': themeMode === 'dark' }">
-    <TopNav v-if="!route.meta.hideTopNav" />
     <div class="body">
       <Sidebar v-if="!route.meta.authPage" />
-      <main class="main">
-        <router-view />
-      </main>
+      <div class="content-shell">
+        <TopNav v-if="!route.meta.hideTopNav" />
+        <main class="main">
+          <router-view />
+        </main>
+      </div>
     </div>
   </div>
 </template>
@@ -70,8 +72,9 @@ watch(themeMode, (mode) => {
 </script>
 
 <style scoped>
-.app { display: flex; flex-direction: column; height: 100vh; background: var(--bg); }
+.app { display: flex; height: 100vh; background: var(--bg); }
 .body { display: flex; flex: 1; overflow: hidden; }
+.content-shell { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
 
 .app.theme-dark {

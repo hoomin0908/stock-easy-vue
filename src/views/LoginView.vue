@@ -18,7 +18,7 @@
             v-model.trim="form.email"
             type="email"
             autocomplete="email"
-            placeholder="test@test.com"
+            placeholder="stockeasy@ssafy.com"
             required
           />
         </label>
@@ -59,7 +59,7 @@ const router = useRouter();
 const { isAuthenticated, login } = useAuth();
 
 const form = reactive({
-  email: typeof route.query.email === "string" ? route.query.email : "",
+  email: typeof route.query.email === "string" ? route.query.email : "stockeasy@ssafy.com",
   password: "",
 });
 const isSubmitting = ref(false);

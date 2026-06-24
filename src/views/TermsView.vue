@@ -26,10 +26,10 @@
         </div>
 
         <div v-else class="term-list">
-          <article v-for="item in savedTerms" :key="item.id" class="term-card">
+          <article v-for="item in savedTerms" :key="item.id || getTermName(item)" class="term-card">
             <div class="term-copy">
-              <h2>{{ item.term?.name || "이름 없는 용어" }}</h2>
-              <p>{{ item.term?.description || "설명 정보가 없습니다." }}</p>
+              <h2>{{ getTermName(item) }}</h2>
+              <p>{{ getTermDescription(item) }}</p>
               <p v-if="item.news?.id" class="source-news" :title="item.news.title">
                 출처 뉴스: {{ item.news.title || "제목 정보 없음" }}
               </p>
@@ -67,6 +67,7 @@ import { useRouter } from "vue-router";
 import { deleteSavedTerm, fetchSavedTerms } from "../services/api";
 
 const router = useRouter();
+const SAVED_TERMS_KEY = "stockeasy-saved-terms";
 const savedTerms = ref([]);
 const isLoading = ref(false);
 const errorMessage = ref("");
@@ -77,6 +78,10 @@ function normalizeList(data) {
     ? data
     : Array.isArray(data?.results)
       ? data.results
+      : Array.isArray(data?.terms)
+        ? data.terms
+        : Array.isArray(data?.data)
+          ? data.data
       : [];
 
   return [...list].sort((a, b) => {
@@ -89,17 +94,56 @@ function normalizeList(data) {
   });
 }
 
+function readLocalTerms() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SAVED_TERMS_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function getTermName(item) {
+  return item?.term?.name || item?.term || item?.title || item?.name || "이름 없는 용어";
+}
+
+function getTermDescription(item) {
+  return (
+    item?.term?.description ||
+    item?.description ||
+    item?.explanation ||
+    item?.meaning ||
+    "설명 정보가 없습니다."
+  );
+}
+
+function mergeTerms(primary, secondary) {
+  const merged = [];
+  const seen = new Set();
+
+  [...primary, ...secondary].forEach((item) => {
+    const key = getTermName(item).trim().toLocaleLowerCase("ko-KR");
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    merged.push(item);
+  });
+
+  return merged;
+}
+
 async function loadSavedTerms() {
   isLoading.value = true;
   errorMessage.value = "";
 
   try {
     const { data } = await fetchSavedTerms();
-    savedTerms.value = normalizeList(data);
+    savedTerms.value = mergeTerms(normalizeList(data), readLocalTerms());
   } catch (error) {
     console.error("저장 용어 조회 실패", error);
-    savedTerms.value = [];
-    errorMessage.value = "저장한 용어를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.";
+    savedTerms.value = readLocalTerms();
+    errorMessage.value = savedTerms.value.length
+      ? ""
+      : "저장한 용어를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.";
   } finally {
     isLoading.value = false;
   }
@@ -117,7 +161,14 @@ async function handleDelete(userTermId) {
   errorMessage.value = "";
 
   try {
-    await deleteSavedTerm(userTermId);
+    if (String(userTermId).startsWith("local-")) {
+      localStorage.setItem(
+        SAVED_TERMS_KEY,
+        JSON.stringify(readLocalTerms().filter((item) => item.id !== userTermId))
+      );
+    } else {
+      await deleteSavedTerm(userTermId);
+    }
     await loadSavedTerms();
   } catch (error) {
     console.error("저장 용어 삭제 실패", error);
@@ -176,9 +227,11 @@ onMounted(loadSavedTerms);
 }
 .terms-panel {
   border: 1px solid var(--border);
+  border-top-color: var(--primary-border);
   border-radius: var(--radius-lg);
   background: var(--cream);
   padding: 18px;
+  box-shadow: 0 8px 22px rgba(255, 106, 0, 0.035);
 }
 .state-box {
   min-height: 180px;
@@ -229,6 +282,7 @@ onMounted(loadSavedTerms);
   justify-content: space-between;
   gap: 18px;
   border: 1px solid var(--border);
+  border-left-color: var(--primary-border);
   border-radius: var(--radius);
   background: var(--bg2);
   padding: 16px;
