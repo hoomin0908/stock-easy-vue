@@ -1,6 +1,10 @@
 <template>
-  <div class="split-container">
-    <aside class="list-side" :class="{ 'has-detail': route.params.id }">
+  <div ref="splitContainer" class="split-container" :class="{ resizing: isResizing }">
+    <aside
+      class="list-side"
+      :class="{ 'has-detail': route.params.id }"
+      :style="route.params.id ? { width: `${listWidth}px` } : undefined"
+    >
       
       <div class="filter-bar">
         <button
@@ -33,45 +37,42 @@
       </div>
     </aside>
 
-    <section class="detail-side">
-      <div v-if="!route.params.id" class="empty-state select-notice">
-        <svg class="notice-icon" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="16" x2="12" y2="12" />
-          <line x1="12" y1="8" x2="12.01" y2="8" />
-        </svg>
-        
-        <h3>StockEasy 실시간 AI 브리핑</h3>
-        
-        <p v-if="activeFilter === 'ALL'">
-          현재 시장에 총 <strong>{{ displayNewsList.length }}개</strong>의 실시간 뉴스가 수신되었습니다.<br>
-          상단의 <strong>호재 / 악재</strong> 필터를 선택하시면 감정별 뉴스만 모아 볼 수 있습니다.
-        </p>
-        <p v-else-if="activeFilter === 'POSITIVE'">
-          현재 시장의 <span style="color: #22c55e; font-weight: 600;">호재성 모멘텀</span>을 지닌 뉴스 <strong>{{ displayNewsList.length }}개</strong>를 분석 중입니다.<br>
-          상승 여력이 있는 종목의 팩트를 왼쪽 피드에서 확인해 보세요.
-        </p>
-        <p v-else-if="activeFilter === 'NEGATIVE'">
-          현재 리스크 관리가 필요한 <span style="color: #ef4444; font-weight: 600;">악재성 리스크</span> 뉴스 <strong>{{ displayNewsList.length }}개</strong>가 노출 중입니다.<br>
-          주요 지지선 및 하방 압력 요소를 체크하세요.
-        </p>
-        <p v-else>
-          시장에 중립적인 영향을 미치는 뉴스 <strong>{{ displayNewsList.length }}개</strong>를 표시 중입니다.
-        </p>
-      </div>
+    <div
+      v-if="route.params.id"
+      class="split-resizer"
+      role="separator"
+      aria-label="뉴스 목록과 상세 화면 너비 조절"
+      aria-orientation="vertical"
+      @pointerdown="startResize"
+    >
+      <span></span>
+    </div>
 
-      <router-view v-else :news-list="newsList" />
+    <section v-if="route.params.id" class="detail-side">
+      <button
+        type="button"
+        class="mobile-list-back"
+        @click="goBackToList"
+      >
+        ← 뉴스 목록
+      </button>
+
+      <router-view :news-list="newsList" />
     </section>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed, inject } from "vue";
-import { useRoute } from "vue-router";
+import { ref, onMounted, onUnmounted, watch, computed, inject } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import NewsCard from "../components/news/NewsCard.vue";
 import * as apiModule from "../services/api";
 
 const route = useRoute();
+const router = useRouter();
+const splitContainer = ref(null);
+const listWidth = ref(400);
+const isResizing = ref(false);
 
 // App.vue 전역 관심종목 검색어 Inject
 const selectedStockFilter = inject("selectedStockFilter", ref(null));
@@ -84,6 +85,46 @@ const filters = [
 ];
 const activeFilter = ref("ALL");
 const newsList = ref([]);
+
+function clampListWidth(width) {
+  const containerWidth = splitContainer.value?.clientWidth || window.innerWidth;
+  const minWidth = containerWidth < 1100 ? 240 : 280;
+  const maxWidth = Math.min(760, containerWidth - 280);
+  return Math.min(Math.max(width, minWidth), maxWidth);
+}
+
+function startResize(event) {
+  if (window.innerWidth <= 760) return;
+
+  event.preventDefault();
+  isResizing.value = true;
+  document.body.style.cursor = "col-resize";
+  document.body.style.userSelect = "none";
+  window.addEventListener("pointermove", handleResize);
+  window.addEventListener("pointerup", stopResize, { once: true });
+}
+
+function handleResize(event) {
+  if (!isResizing.value || !splitContainer.value) return;
+
+  const containerLeft = splitContainer.value.getBoundingClientRect().left;
+  listWidth.value = clampListWidth(event.clientX - containerLeft);
+}
+
+function stopResize() {
+  isResizing.value = false;
+  document.body.style.cursor = "";
+  document.body.style.userSelect = "";
+  window.removeEventListener("pointermove", handleResize);
+}
+
+function handleWindowResize() {
+  listWidth.value = clampListWidth(listWidth.value);
+}
+
+function goBackToList() {
+  router.push({ path: "/news", query: route.query });
+}
 
 const themeKeywords = {
   "반도체": ["반도체", "칩", "삼성전자", "SK하이닉스", "엔비디아", "파운드리", "HBM", "설계"],
@@ -183,6 +224,12 @@ const displayNewsList = computed(() => {
 
 onMounted(() => {
   loadNews();
+  window.addEventListener("resize", handleWindowResize);
+});
+
+onUnmounted(() => {
+  stopResize();
+  window.removeEventListener("resize", handleWindowResize);
 });
 
 // 테마 필터 바뀔 시 원본 갱신
@@ -193,8 +240,14 @@ watch(() => route.query.sector, () => {
 
 <style scoped>
 .split-container { display: flex; width: 100%; height: 100%; background: var(--bg); overflow: hidden; }
-.list-side { flex: 2; min-width: 420px; border-right: 1px solid var(--border); display: flex; flex-direction: column; background: var(--bg2); transition: flex 0.3s ease, width 0.3s ease; }
-.list-side.has-detail { flex: 0.7; min-width: 380px; max-width: 420px; }
+.split-container.resizing { cursor: col-resize; }
+.list-side { flex: 1; min-width: 0; border-right: 1px solid var(--border); display: flex; flex-direction: column; background: var(--bg2); }
+.list-side.has-detail { flex: 0 0 auto; min-width: 240px; max-width: 760px; }
+.split-resizer { position: relative; flex: 0 0 8px; margin-left: -4px; margin-right: -4px; z-index: 5; cursor: col-resize; touch-action: none; }
+.split-resizer::before { content: ""; position: absolute; top: 0; bottom: 0; left: 3px; width: 2px; background: transparent; transition: background 0.15s ease; }
+.split-resizer:hover::before, .resizing .split-resizer::before { background: var(--primary, #ff5a1f); }
+.split-resizer span { position: absolute; top: 50%; left: 1px; width: 6px; height: 42px; transform: translateY(-50%); border-radius: 4px; background: #cbd5e1; opacity: 0; transition: opacity 0.15s ease, background 0.15s ease; }
+.split-resizer:hover span, .resizing .split-resizer span { opacity: 1; background: var(--primary, #ff5a1f); }
 .filter-bar { display: flex; gap: 8px; padding: 16px; background: var(--bg); border-bottom: 1px solid var(--border); }
 .filter-chip { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg); font-size: 12.5px; color: var(--text2); cursor: pointer; transition: all 0.15s ease; }
 .filter-chip:hover { border-color: var(--primary-border); color: var(--primary); }
@@ -203,9 +256,25 @@ watch(() => route.query.sector, () => {
 .list-scroll::-webkit-scrollbar { width: 4px; }
 .list-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
 .detail-side { flex: 1.3; min-width: 0; height: 100%; background: var(--bg); display: flex; flex-direction: column; }
+.mobile-list-back { display: none; }
 .select-notice { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; }
 .select-notice h3 { font-size: 16px; font-weight: 700; color: var(--text1); margin-top: 16px; }
 .select-notice p { color: var(--text3); font-size: 13px; line-height: 1.6; margin-top: 8px; }
 .notice-icon { width: 40px; height: 40px; stroke: var(--text3); stroke-width: 1.5; fill: none; }
 .empty-state { text-align: center; color: var(--text3); font-size: 13px; line-height: 1.6; }
+
+@media (max-width: 1100px) {
+  .list-side.has-detail { min-width: 240px; }
+  .filter-bar { padding: 12px; gap: 6px; }
+  .filter-chip { flex: 1; padding: 6px 8px; }
+  .list-scroll { padding: 12px; }
+}
+
+@media (max-width: 760px) {
+  .split-container { position: relative; }
+  .list-side.has-detail { display: none; }
+  .split-resizer { display: none; }
+  .detail-side { flex: 1; width: 100%; }
+  .mobile-list-back { display: inline-flex; align-items: center; align-self: flex-start; margin: 10px 12px 0; padding: 7px 11px; border: 1px solid var(--border); border-radius: 7px; background: #ffffff; color: var(--text2); font-size: 12px; font-weight: 650; cursor: pointer; z-index: 2; }
+}
 </style>

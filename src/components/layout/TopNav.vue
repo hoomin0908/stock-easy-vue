@@ -1,14 +1,14 @@
 <template>
   <nav class="top-nav">
-    <router-link class="logo" to="/">
+    <router-link class="logo" :to="logoLink">
       <div class="logo-badge">
         <svg viewBox="0 0 16 16"><polyline points="1,12 5,7 9,10 15,3" /></svg>
       </div>
       STOCKEASY
     </router-link>
 
-    <div class="nav-tabs">
-      <router-link class="nav-tab" to="/" active-class="active">뉴스</router-link>
+    <div v-if="!route.meta.authPage" class="nav-tabs">
+      <router-link class="nav-tab" to="/news" active-class="active">뉴스</router-link>
       <router-link class="nav-tab" to="/watchlist" active-class="active">관심종목</router-link>
       <router-link class="nav-tab" to="/glossary" active-class="active">용어사전</router-link>
       <router-link class="nav-tab" to="/saved" active-class="active">저장됨</router-link>
@@ -50,6 +50,10 @@ const isLoggingOut = ref(false);
 const displayName = computed(
   () => currentUser.value?.nickname || currentUser.value?.email || "사용자"
 );
+
+const logoLink = computed(() => {
+  return isAuthenticated.value ? "/news" : "/";
+});
 
 const loginLink = computed(() => ({
   path: "/login",

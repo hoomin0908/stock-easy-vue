@@ -112,7 +112,7 @@ async function handleSubmit() {
 .auth-card { width: min(100%, 430px); padding: 36px; border: 1px solid var(--border); border-radius: 18px; background: rgba(255, 255, 255, 0.96); box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08); }
 .auth-heading { margin-bottom: 26px; }
 .auth-kicker { color: var(--primary); font-size: 10.5px; font-weight: 800; letter-spacing: 0.12em; }
-.auth-heading h1 { margin-top: 8px; font-size: 27px; }
+.auth-heading h1 { margin-top: 12px; font-size: 38px; font-weight: 700; letter-spacing: -0.5px; }
 .auth-heading p { margin-top: 8px; color: var(--text3); font-size: 13px; line-height: 1.6; }
 .auth-form { display: flex; flex-direction: column; gap: 17px; }
 .field { display: flex; flex-direction: column; gap: 7px; }
