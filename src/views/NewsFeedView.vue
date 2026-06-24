@@ -7,11 +7,15 @@
     >
       
       <div class="filter-bar">
-        <div v-if="route.query.stockId || route.query.themeId || route.query.sector" class="selected-company-label">
+        <div
+          v-if="selectedNewsScopeLabel"
+          class="selected-company-label"
+          :class="{ 'topic-search-label': isTopicSearch }"
+        >
           <strong>
-            {{ route.query.stockName || route.query.themeName || route.query.sector || "선택 항목" }}
+            {{ selectedNewsScopeLabel }}
           </strong>
-          <span>{{ route.query.sector ? "주제 검색 결과" : "관련 뉴스" }}</span>
+          <span>{{ isTopicSearch ? "주제 검색 결과" : "관련 뉴스" }}</span>
         </div>
 
         <button
@@ -107,7 +111,6 @@ import { useRoute, useRouter } from "vue-router";
 import NewsCard from "../components/news/NewsCard.vue";
 import {
   fetchNewsFeed,
-  fetchNewsByStock,
   fetchNewsByTheme,
 } from "../services/api";
 
@@ -132,7 +135,20 @@ const isNewsLoading = ref(false);
 const newsError = ref("");
 const currentPage = ref(1);
 const pageSize = 14;
+const clientFilterMode = ref({ stock: false, theme: false });
 let latestNewsRequestId = 0;
+
+const isTopicSearch = computed(() => Boolean(route.query.sector));
+const selectedNewsScopeLabel = computed(() => {
+  if (route.query.sector) return `"${route.query.sector}"`;
+  return route.query.stockName || route.query.themeName || "";
+});
+
+function normalizeNewsResponse(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.results)) return data.results;
+  return [];
+}
 
 function clampListWidth(width) {
   const containerWidth = splitContainer.value?.clientWidth || window.innerWidth;
@@ -212,6 +228,98 @@ function getTopicSearchText(item) {
     .toLowerCase();
 }
 
+function getRelatedStocks(item) {
+  return [
+    ...(Array.isArray(item.related_stocks) ? item.related_stocks : []),
+    ...(Array.isArray(item.news_stocks) ? item.news_stocks : []),
+  ];
+}
+
+function normalizeSearchValue(value) {
+  return String(value || "").toLowerCase().replace(/\s+/g, "");
+}
+
+function getStockAliases(stockName) {
+  const normalizedName = normalizeSearchValue(stockName);
+  const aliases = [normalizedName];
+
+  if (normalizedName.includes("현대자동차")) aliases.push("현대차");
+  if (normalizedName.includes("현대차")) aliases.push("현대자동차");
+  if (normalizedName.includes("삼성전자")) aliases.push("삼전");
+  if (normalizedName.includes("kb국민은행")) aliases.push("국민은행", "kb금융");
+
+  return aliases.filter(Boolean);
+}
+
+function getStockSearchText(item) {
+  const relatedStocks = getRelatedStocks(item)
+    .map(stock => [
+      stock.id,
+      stock.stock_id,
+      stock.stock?.id,
+      stock.stock_name,
+      stock.stockName,
+      stock.name,
+      stock.stock?.stock_name,
+      stock.stock?.name,
+      stock.stock_code,
+      stock.stock?.stock_code,
+    ].filter(Boolean).join(" "))
+    .join(" ");
+
+  return [
+    relatedStocks,
+    item.title,
+    item.content,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function matchesStockFilter(item) {
+  const stockId = route.query.stockId ? String(route.query.stockId) : "";
+  const stockName = route.query.stockName ? String(route.query.stockName) : "";
+  const relatedStocks = getRelatedStocks(item);
+
+  const idMatches = stockId && relatedStocks.some(stock => {
+    const candidateIds = [
+      stock.id,
+      stock.stock_id,
+      stock.stock?.id,
+    ].filter(value => value !== undefined && value !== null).map(String);
+
+    return candidateIds.includes(stockId);
+  });
+
+  if (idMatches) return true;
+  if (!stockName) return false;
+
+  const searchText = normalizeSearchValue(getStockSearchText(item));
+  return getStockAliases(stockName).some(alias => searchText.includes(alias));
+}
+
+function matchesThemeFilter(item) {
+  const themeId = route.query.themeId ? String(route.query.themeId) : "";
+  const themeName = route.query.themeName ? String(route.query.themeName).toLowerCase() : "";
+  const relatedThemes = Array.isArray(item.related_themes) ? item.related_themes : [];
+
+  const idMatches = themeId && relatedThemes.some(theme => {
+    const candidateIds = [
+      theme.id,
+      theme.theme_id,
+      theme.theme?.id,
+    ].filter(value => value !== undefined && value !== null).map(String);
+
+    return candidateIds.includes(themeId);
+  });
+
+  if (idMatches) return true;
+  if (!themeName) return false;
+
+  return getTopicSearchText(item).includes(themeName);
+}
+
 // 1. 백엔드 전체 목록 원본 데이터 스캔 엔진 (API 명세 완전 방어)
 const loadNews = async () => {
   const requestId = ++latestNewsRequestId;
@@ -223,30 +331,52 @@ const loadNews = async () => {
 
   try {
     let response;
+    let shouldClientFilterStock = false;
+    let shouldClientFilterTheme = false;
 
     if (stockId) {
-      response = await fetchNewsByStock(stockId);
+      response = await fetchNewsFeed();
+      shouldClientFilterStock = true;
     } else if (themeId) {
       response = await fetchNewsByTheme(themeId);
+      if (normalizeNewsResponse(response.data).length === 0) {
+        response = await fetchNewsFeed();
+        shouldClientFilterTheme = true;
+      }
     } else {
       response = await fetchNewsFeed();
     }
 
     if (requestId !== latestNewsRequestId) return;
 
-    newsList.value = Array.isArray(response.data)
-      ? response.data
-      : (response.data?.results || []);
+    newsList.value = normalizeNewsResponse(response.data);
+    clientFilterMode.value = {
+      stock: shouldClientFilterStock,
+      theme: shouldClientFilterTheme,
+    };
   } catch (error) {
     if (requestId !== latestNewsRequestId) return;
 
     console.error("API 요청 실패:", error);
+    if (stockId || themeId) {
+      try {
+        const fallbackResponse = await fetchNewsFeed();
+        if (requestId !== latestNewsRequestId) return;
+
+        newsList.value = normalizeNewsResponse(fallbackResponse.data);
+        clientFilterMode.value = {
+          stock: Boolean(stockId),
+          theme: Boolean(themeId),
+        };
+        return;
+      } catch (fallbackError) {
+        console.error("전체 뉴스 fallback 요청 실패:", fallbackError);
+      }
+    }
+
     newsList.value = [];
-    newsError.value = stockId
-      ? "관심 기업 뉴스를 불러오지 못했습니다."
-      : themeId
-        ? "추천 테마 뉴스를 불러오지 못했습니다."
-        : "뉴스를 불러오지 못했습니다.";
+    clientFilterMode.value = { stock: false, theme: false };
+    newsError.value = "뉴스를 불러오지 못했습니다.";
   } finally {
     if (requestId === latestNewsRequestId) {
       isNewsLoading.value = false;
@@ -257,8 +387,8 @@ const loadNews = async () => {
 function handleFilterClick(value) {
   activeFilter.value = value;
 
-  if (value === "ALL" && (route.query.stockId || route.query.themeId)) {
-    router.push({ path: "/", query: {} });
+  if (value === "ALL" && (route.query.stockId || route.query.themeId || route.query.sector)) {
+    router.push({ path: "/news", query: {} });
   }
 }
 
@@ -290,10 +420,23 @@ function getNewsSentiment(item) {
 const displayNewsList = computed(() => {
   let list = [...newsList.value];
 
-  // [필터 1] 상단 관심 종목 검색바 필터링
+  // [필터 1] 등록한 관심 기업 클릭 필터링
+  if (clientFilterMode.value.stock && (route.query.stockId || route.query.stockName)) {
+    list = list.filter(matchesStockFilter);
+  }
+
+  // [필터 1-2] 추천 테마 클릭 필터링
+  if (clientFilterMode.value.theme && (route.query.themeId || route.query.themeName)) {
+    list = list.filter(matchesThemeFilter);
+  }
+
+  // [필터 1-3] 상단 관심 종목 검색바 필터링
   if (selectedStockFilter.value) {
     list = list.filter(n => {
-      const matchImpact = n.related_stocks?.some(s => s.stock_name === selectedStockFilter.value);
+      const matchImpact = getRelatedStocks(n).some(s => {
+        const stockName = s.stock_name || s.stockName || s.name || s.stock?.stock_name || "";
+        return stockName === selectedStockFilter.value;
+      });
       const matchTitle = n.title?.includes(selectedStockFilter.value);
       return matchImpact || matchTitle;
     });
@@ -414,6 +557,32 @@ watch(
 .split-resizer span { position: absolute; top: 50%; left: 1px; width: 6px; height: 42px; transform: translateY(-50%); border-radius: 4px; background: #cbd5e1; opacity: 0; transition: opacity 0.15s ease, background 0.15s ease; }
 .split-resizer:hover span, .resizing .split-resizer span { opacity: 1; background: var(--primary, #ff5a1f); }
 .filter-bar { display: flex; gap: 10px; padding: 18px; background: var(--cream); border-bottom: 1px solid var(--border); }
+.selected-company-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: var(--bg2);
+  color: var(--text2);
+  font-size: 12.5px;
+}
+.selected-company-label strong {
+  color: var(--text1);
+  font-weight: 800;
+}
+.selected-company-label span {
+  color: var(--text3);
+  font-size: 11.5px;
+}
+.selected-company-label.topic-search-label {
+  background: var(--primary-bg);
+  border: 1px solid var(--primary-border);
+}
+.selected-company-label.topic-search-label strong,
+.selected-company-label.topic-search-label span {
+  color: var(--primary);
+}
 .filter-chip { padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--cream); font-size: 12.5px; font-weight: 700; color: var(--text2); cursor: pointer; transition: all 0.18s ease; }
 .filter-chip:hover { border-color: var(--primary-border); color: var(--primary); }
 .filter-chip.active { background: linear-gradient(90deg, #ff5a00, #ff9500); color: #ffffff; border-color: transparent; font-weight: 800; box-shadow: 0 0 22px rgba(255, 106, 0, 0.18); }
