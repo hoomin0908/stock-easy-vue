@@ -33,17 +33,6 @@
               <span aria-hidden="true">→</span>
             </button>
 
-            <button 
-              v-if="targetCompanyName" 
-              class="watchlist-toggle-btn"
-              :class="{ 'is-active': isWatched(targetCompanyName) }"
-              @click="toggleWatchlist(targetCompanyName)"
-            >
-              <svg viewBox="0 0 24 24" class="star-icon">
-                <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
-              </svg>
-              {{ isWatched(targetCompanyName) ? '관심 해제' : '관심 종목 등록' }}
-            </button>
           </div>
         </div>
       </header>
@@ -788,7 +777,7 @@ const targetCompanyName = computed(() => {
 
 <style scoped>
 /* [화이트&오렌지 대시보드 스크롤 CSS 스타일 전수 완전 보존] */
-.detail-container { width: 100%; height: 100%; background: #ffffff; display: flex; flex-direction: column; overflow: hidden; }
+.detail-container { width: 100%; height: 100%; background: #ffffff; display: flex; flex-direction: column; overflow: hidden; container-type: inline-size; container-name: news-detail; }
 .loading-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text3, #64748b); gap: 12px; }
 .spinner { width: 32px; height: 32px; border: 3px solid var(--border, #e2e8f0); border-top-color: var(--primary, #ff5a1f); border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -829,7 +818,7 @@ const targetCompanyName = computed(() => {
 }
 .rewritten-box { display: flex; flex-direction: column; gap: 9px; font-size: 14.5px; color: #334155; line-height: 1.75; background: #ffffff; padding: 18px; border-radius: 12px; border: 1px solid #e2e8f0; margin: 0; }
 .briefing-sentence { margin: 0; padding: 4px 8px; border-radius: 6px; }
-.briefing-sentence.is-highlighted { background: #fff7ed; color: #9a3412; font-weight: 650; box-shadow: inset 3px 0 0 #fb923c; }
+.briefing-sentence.is-highlighted { background: transparent; color: #c2410c; font-weight: inherit; box-shadow: none; }
 .briefing-reference { margin-left: 3px; color: #ea580c; font-size: 10.5px; font-weight: 800; vertical-align: super; }
 .highlight-list { display: flex; flex-direction: column; gap: 10px; }
 .highlight-item-box { display: flex; align-items: flex-start; gap: 12px; background: #ffffff; border: 1px solid #fed7aa; padding: 14px; border-radius: 10px; box-shadow: 0 5px 18px rgba(15, 23, 42, 0.04); }
@@ -1036,9 +1025,25 @@ const targetCompanyName = computed(() => {
   .upper-left-content, .upper-right-widgets { width: 100%; min-width: 0; }
 }
 
+@container news-detail (max-width: 760px) {
+  .detail-scroll-area { padding: 18px; }
+  .dashboard-upper-grid { display: flex; flex-direction: column; gap: 20px; }
+  .upper-left-content, .upper-right-widgets { width: 100%; min-width: 0; }
+  .upper-left-content { display: contents; }
+  .upper-right-widgets { display: contents; }
+  .detail-article-body { order: 1; margin-bottom: 0; }
+  .ai-highlight-section { order: 2; }
+  .ai-terms-section { order: 3; margin-bottom: 0; }
+  .ai-checkpoint-section { order: 4; margin-bottom: 0; }
+  .highlight-empty-state { order: 2; }
+  .related-widgets-section { order: 5; }
+  .detail-actions { width: auto; justify-content: flex-end; margin-left: auto; }
+  .action-bar-row { align-items: center; flex-direction: row; }
+}
+
 @media (max-width: 768px) {
-  .action-bar-row { align-items: flex-start; gap: 12px; }
-  .detail-actions { flex-wrap: wrap; justify-content: flex-end; }
+  .action-bar-row { align-items: center; gap: 12px; }
+  .detail-actions { flex-wrap: nowrap; justify-content: flex-end; margin-left: auto; }
   .report-overlay { padding: 0; }
   .report-paper { min-height: 100vh; padding: 52px 24px 36px 38px; border: 0; border-radius: 0; }
   .report-paper::before { left: 20px; }
