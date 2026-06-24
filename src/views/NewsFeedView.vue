@@ -79,7 +79,6 @@
 </template>
 
 <script setup>
-import { ref, watch, computed, inject } from "vue";
 import { ref, onMounted, onUnmounted, watch, computed, inject } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import NewsCard from "../components/news/NewsCard.vue";
@@ -302,18 +301,8 @@ onMounted(() => {
 onUnmounted(() => {
   stopResize();
   window.removeEventListener("resize", handleWindowResize);
-watch(
-  () => route.query.sector,
-  (sector, previousSector) => {
-    if (
-      sector !== previousSector &&
-      !route.query.stockId &&
-      !route.query.themeId
-    ) {
-      loadNews();
-    }
-  }
-);
+});
+
 </script>
 
 <style scoped>
