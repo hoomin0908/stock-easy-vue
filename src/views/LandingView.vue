@@ -85,15 +85,15 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #fff8f4;
+  background-color: #f8fafc;
   background-image:
     linear-gradient(
       135deg,
-      rgba(255, 248, 244, 0.9) 0%,
-      rgba(248, 250, 252, 0.72) 48%,
-      rgba(255, 255, 255, 0.36) 100%
+      rgba(255, 255, 255, 0.66) 0%,
+      rgba(248, 250, 252, 0.5) 48%,
+      rgba(255, 255, 255, 0.18) 100%
     ),
-    url("../assets/images/landing-bull-warm.png");
+    url("../assets/images/landing-market-neutral-v2.png");
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
@@ -315,11 +315,11 @@ onMounted(async () => {
     background-image:
       linear-gradient(
         135deg,
-        rgba(255, 248, 244, 0.96) 0%,
-        rgba(248, 250, 252, 0.88) 55%,
-        rgba(255, 255, 255, 0.62) 100%
+        rgba(255, 255, 255, 0.88) 0%,
+        rgba(248, 250, 252, 0.78) 55%,
+        rgba(255, 255, 255, 0.48) 100%
       ),
-      url("../assets/images/landing-bull-warm.png");
+      url("../assets/images/landing-market-neutral-v2.png");
     background-position: 62% center;
   }
 

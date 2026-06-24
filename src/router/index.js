@@ -5,7 +5,7 @@ const routes = [
     path: "/",
     name: "landing",
     component: () => import("../views/LandingView.vue"),
-    meta: { authPage: true },
+    meta: { authPage: true, hideTopNav: true },
   },
   {
     path: "/news",

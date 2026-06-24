@@ -8,32 +8,43 @@
     <div v-else-if="news" class="detail-scroll-area">
       
       <header class="detail-header">
+        <h1 class="detail-title">{{ news.title }}</h1>
+
         <div class="detail-meta-row">
-          <span class="sentiment-tag" :class="sentimentClass">
-            {{ sentimentLabel }} (영향도: {{ analysis?.impact_score || '0.0' }}점)
-          </span>
+          <span class="sentiment-tag" :class="sentimentClass">{{ sentimentLabel }}</span>
+          <span class="impact-meta">영향도 {{ analysis?.impact_score || '0.0' }} / 10</span>
           <span class="meta-divider">•</span>
           <span class="publisher-txt">{{ news.publisher }}</span>
           <span class="meta-divider">•</span>
           <span class="time-txt">실시간 AI 브리핑</span>
         </div>
 
-        <h1 class="detail-title">{{ news.title }}</h1>
-
         <div class="action-bar-row">
           <span class="author-txt" v-if="news.author">{{ news.author }}</span>
-          
-          <button 
-            v-if="targetCompanyName" 
-            class="watchlist-toggle-btn"
-            :class="{ 'is-active': isWatched(targetCompanyName) }"
-            @click="toggleWatchlist(targetCompanyName)"
-          >
-            <svg viewBox="0 0 24 24" class="star-icon">
-              <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
-            </svg>
-            {{ isWatched(targetCompanyName) ? '관심 해제' : '관심 종목 등록' }}
-          </button>
+
+          <div class="detail-actions">
+            <button
+              v-if="analysis"
+              type="button"
+              class="report-open-btn"
+              @click="openAiReport"
+            >
+              AI 리포트 보기
+              <span aria-hidden="true">→</span>
+            </button>
+
+            <button 
+              v-if="targetCompanyName" 
+              class="watchlist-toggle-btn"
+              :class="{ 'is-active': isWatched(targetCompanyName) }"
+              @click="toggleWatchlist(targetCompanyName)"
+            >
+              <svg viewBox="0 0 24 24" class="star-icon">
+                <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
+              </svg>
+              {{ isWatched(targetCompanyName) ? '관심 해제' : '관심 종목 등록' }}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -43,34 +54,56 @@
         
         <div class="upper-left-content">
           <article class="detail-article-body">
-            <h2 class="section-sub-title">📝 AI 알기 쉬운 재구성 브리핑</h2>
-            <p class="article-text-p rewritten-box">
-              {{ analysis?.rewritten_content || news.content || news.description }}
-            </p>
+            <h2 class="section-sub-title">
+              <span class="section-index">01</span>
+              AI 알기 쉬운 재구성 브리핑
+            </h2>
+            <div class="rewritten-box">
+              <p
+                v-for="(sentence, idx) in briefingSentences"
+                :key="`${idx}-${sentence.text}`"
+                class="briefing-sentence"
+                :class="{ 'is-highlighted': sentence.references.length > 0 }"
+              >
+                <span>{{ sentence.text }}</span>
+                <template v-if="sentence.references.length > 0">
+                  <sup
+                    v-for="reference in sentence.references"
+                    :key="reference"
+                    class="briefing-reference"
+                  >
+                    [{{ reference }}]
+                  </sup>
+                </template>
+              </p>
+            </div>
           </article>
 
-          <section class="ai-highlight-section" v-if="analysis?.highlight && analysis.highlight.length > 0">
-            <h2 class="section-sub-title">🎯 AI 추천 뉴스 핵심 팩트 문장</h2>
-            <div class="highlight-list">
-              <div v-for="(hl, idx) in analysis.highlight" :key="idx" class="highlight-item-box">
-                <p class="hl-sentence">" {{ hl.sentence }} "</p>
-                <p class="hl-reason">📌 중요 근거: {{ hl.reason }}</p>
-              </div>
-            </div>
-          </section>
-
           <section class="ai-terms-section" v-if="analysis?.difficult_terms && analysis.difficult_terms.length > 0">
-            <h2 class="section-sub-title">📚 이번 기사 속 초보 투자 용어 풀이</h2>
+            <h2 class="section-sub-title">
+              <span class="section-index">02</span>
+              초보 투자 용어 풀이
+            </h2>
             <div class="terms-pill-grid">
-              <div v-for="(tm, idx) in analysis.difficult_terms" :key="idx" class="term-detail-card">
-                <span class="term-badge-name">{{ tm.term }}</span>
+              <details
+                v-for="(tm, idx) in analysis.difficult_terms"
+                :key="idx"
+                class="term-detail-card"
+              >
+                <summary class="term-badge-name">
+                  <span>{{ tm.term }}</span>
+                  <span class="term-toggle-icon" aria-hidden="true">+</span>
+                </summary>
                 <p class="term-explanation-txt">{{ tm.explanation }}</p>
-              </div>
+              </details>
             </div>
           </section>
 
           <section class="ai-checkpoint-section" v-if="analysis?.check_points && analysis.check_points.length > 0">
-            <h2 class="section-sub-title">⚠️ 투자자가 추가로 확인해야 할 체크포인트</h2>
+            <h2 class="section-sub-title">
+              <span class="section-index">03</span>
+              투자자가 추가로 확인해야 할 체크포인트
+            </h2>
             <ul class="checkpoint-list">
               <li v-for="(cp, idx) in analysis.check_points" :key="idx">
                 {{ cp }}
@@ -80,6 +113,37 @@
         </div>
 
         <div class="upper-right-widgets">
+          <section class="ai-highlight-section" v-if="highlightFacts.length > 0">
+            <h2 class="section-sub-title">
+              <span class="section-index">KEY</span>
+              AI 추천 뉴스 핵심 팩트
+            </h2>
+            <div class="highlight-list">
+              <article
+                v-for="(fact, idx) in highlightFacts"
+                :key="`${idx}-${fact.sentence}`"
+                class="highlight-item-box"
+              >
+                <span class="fact-reference">[{{ idx + 1 }}]</span>
+                <div class="fact-content">
+                  <p class="hl-sentence">{{ fact.sentence }}</p>
+                  <p v-if="fact.reason" class="hl-reason">
+                    중요 근거: {{ fact.reason }}
+                  </p>
+                </div>
+              </article>
+            </div>
+          </section>
+          <div v-else class="highlight-empty-state">
+            핵심 팩트 문장을 분석하고 있습니다.
+          </div>
+
+          <section class="related-widgets-section">
+            <h2 class="section-sub-title">
+              <span class="section-index">MORE</span>
+              관련 콘텐츠와 커뮤니티
+            </h2>
+            <div class="related-widgets-panel">
           <div class="widget-tabs-bar">
             <button 
               v-for="tab in tabs" 
@@ -94,27 +158,17 @@
 
           <div class="widget-content-body">
             <div v-if="activeTab === 'youtube'" class="tab-pane-view youtube-pane">
-              <div class="pane-title-info">
-                <h4>🎬 MEDIA ANALYSIS</h4>
-                <p v-if="targetCompanyName"><span>{{ targetCompanyName }}</span> 실시간 유튜브 미디어 인사이트</p>
-                <p v-else>전체 증시 마켓 동향 브리핑</p>
-              </div>
               <div class="pane-component-scroller">
                 <NewsYoutubeFeed :company-name="targetCompanyName || '주식 시장'" />
               </div>
             </div>
 
             <div v-if="activeTab === 'map'" class="tab-pane-view">
-              <div class="pane-title-info">
-                <h4>📍 CORPORATE MAP</h4>
-                <p v-if="targetCompanyName"><span>{{ targetCompanyName }}</span> 기업 본사 지리적 위치 파악</p>
-              </div>
               <NewsKakaoMap :company-name="targetCompanyName || '한국거래소'" />
             </div>
 
             <div v-if="activeTab === 'community'" class="tab-pane-view">
               <div class="pane-title-info">
-                <h4>💬 DEBATE FORUM</h4>
                 <p>기사 및 AI 분석 결과 피드에 대한 주주 실시간 토론 공간</p>
               </div>
               <div class="community-chat-container">
@@ -134,51 +188,81 @@
 
                   <template v-else>
                     <div
-                      v-for="comment in comments"
+                      v-for="(comment, index) in comments"
                       :key="comment.id"
-                      class="msg"
-                      :class="{ sent: isMyComment(comment), received: !isMyComment(comment) }"
+                      class="comment-entry"
                     >
-                      <div class="comment-header">
-                        <span class="chat-user">{{ comment.user?.nickname || "사용자" }}</span>
-
-                        <div v-if="isMyComment(comment)" class="comment-actions">
-                          <button type="button" @click="startEditing(comment)">수정</button>
-                          <button
-                            type="button"
-                            :disabled="deletingCommentId === comment.id"
-                            @click="handleDelete(comment)"
-                          >
-                            {{ deletingCommentId === comment.id ? "삭제 중" : "삭제" }}
-                          </button>
-                        </div>
+                      <div v-if="shouldShowCommentDate(index)" class="chat-date-divider">
+                        <span>{{ formatCommentDate(comment.created_at) }}</span>
                       </div>
 
-                      <template v-if="editingCommentId === comment.id">
-                        <textarea
-                          v-model="editingContent"
-                          class="comment-edit-input"
-                          maxlength="500"
-                          rows="3"
-                        ></textarea>
-                        <div class="edit-actions">
-                          <button type="button" @click="cancelEditing">취소</button>
-                          <button
-                            type="button"
-                            :disabled="isUpdating || !editingContent.trim()"
-                            @click="handleUpdate(comment.id)"
-                          >
-                            {{ isUpdating ? "저장 중..." : "저장" }}
-                          </button>
+                      <div
+                        class="comment-message-row"
+                        :class="{ sent: isMyComment(comment), received: !isMyComment(comment) }"
+                      >
+                        <div
+                          class="msg"
+                          :class="{ sent: isMyComment(comment), received: !isMyComment(comment) }"
+                        >
+                          <div class="comment-header">
+                            <span class="chat-user">{{ comment.user?.nickname || "사용자" }}</span>
+
+                            <div
+                              v-if="isMyComment(comment)"
+                              class="comment-menu"
+                              @click.stop
+                            >
+                              <button
+                                type="button"
+                                class="comment-menu-trigger"
+                                aria-label="댓글 메뉴 열기"
+                                @click="toggleCommentMenu(comment.id)"
+                              >
+                                …
+                              </button>
+                              <div
+                                v-if="openCommentMenuId === comment.id"
+                                class="comment-menu-popover"
+                              >
+                                <button type="button" @click="startEditing(comment)">수정</button>
+                                <button
+                                  type="button"
+                                  :disabled="deletingCommentId === comment.id"
+                                  @click="handleDelete(comment)"
+                                >
+                                  {{ deletingCommentId === comment.id ? "삭제 중" : "삭제" }}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          <template v-if="editingCommentId === comment.id">
+                            <textarea
+                              v-model="editingContent"
+                              class="comment-edit-input"
+                              maxlength="500"
+                              rows="3"
+                            ></textarea>
+                            <div class="edit-actions">
+                              <button type="button" @click="cancelEditing">취소</button>
+                              <button
+                                type="button"
+                                :disabled="isUpdating || !editingContent.trim()"
+                                @click="handleUpdate(comment.id)"
+                              >
+                                {{ isUpdating ? "저장 중..." : "저장" }}
+                              </button>
+                            </div>
+                          </template>
+
+                          <p v-else class="msg-txt">{{ comment.content }}</p>
                         </div>
-                      </template>
 
-                      <p v-else class="msg-txt">{{ comment.content }}</p>
-
-                      <span class="chat-time">
-                        {{ formatCommentTime(getCommentDisplayTime(comment)) }}
-                        <template v-if="isEdited(comment)"> · 수정됨</template>
-                      </span>
+                        <span class="chat-time">
+                          {{ formatCommentTime(getCommentDisplayTime(comment)) }}
+                          <template v-if="isEdited(comment)"> · 수정됨</template>
+                        </span>
+                      </div>
                     </div>
                   </template>
                 </div>
@@ -218,52 +302,119 @@
               </div>
             </div>
           </div>
+            </div>
+          </section>
         </div>
-
-      </div> <section class="dashboard-lower-analysis" v-if="analysis">
-        <h2 class="lower-section-title">✨ AI 인텔리전스 투자 판단 종합 보고서</h2>
-        
-        <div class="ai-analysis-grid">
-          <div class="analysis-opinion-card positive-side">
-            <div class="opinion-card-header">
-              <span class="opinion-icon">🚀</span>
-              <h3>호재 모멘텀 및 핵심 강점</h3>
-            </div>
-            <div class="opinion-content-body">
-              <p class="opinion-reason-summary"><strong>투자 심리 방향성:</strong> {{ analysis.sentiment_reason }}</p>
-              <div class="opinion-sub-card">
-                <span class="opinion-label">📊 분석 스코어 반영 가치</span>
-                <p class="opinion-desc">본 뉴스 흐름은 <strong>시장 파급력 {{ analysis.impact_score }}점</strong> 수준에 해당하는 긍정적 지표를 확보하고 있으며, 핵심 공급망 및 기업 가치 향상 주도 요인으로 작동할 가능성이 높습니다.</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="analysis-opinion-card negative-side">
-            <div class="opinion-card-header">
-              <span class="opinion-icon">⚠️</span>
-              <h3>하방 리스크 및 경고 요인</h3>
-            </div>
-            <div class="opinion-content-body">
-              <p class="opinion-reason-summary"><strong>리스크 추적 판단근거:</strong> {{ analysis.impact_reason }}</p>
-              <div class="opinion-sub-card">
-                <span class="opinion-label">📉 변동성 방어선 및 한계점</span>
-                <p class="opinion-desc">투자자는 상단에 요약된 리스크 체크포인트 지표와 거시적 하방 압력을 동시에 검토해야 하며, 단기 재무 부담 요인이 수반될 수 있으므로 추세 전환 확인 후 진입이 권장됩니다.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="ai-summary-footer-bar">
-          <p>💡 <strong>AI 종합 가이드 마인드:</strong> 종합 점수 스펙과 호악재 밸런스를 고려했을 때, 연동된 <strong>{{ targetCompanyName || '관심 기업' }}</strong>의 수급 다변화를 유심히 트래킹하되 분할 매수 관점의 리스크 헷징 레이아웃을 추천합니다.</p>
-        </div>
-      </section>
+      </div>
 
     </div>
   </div>
+
+  <Teleport to="body">
+    <Transition name="report-page-turn">
+      <div
+        v-if="showAiReport && analysis"
+        class="report-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ai-report-title"
+        @click.self="closeAiReport"
+      >
+        <article class="report-paper">
+          <button
+            type="button"
+            class="report-close-btn"
+            aria-label="AI 리포트 닫기"
+            @click="closeAiReport"
+          >
+            ×
+          </button>
+
+          <header class="report-header">
+            <div>
+              <p class="report-kicker">STOCKEASY AI RESEARCH</p>
+              <h2 id="ai-report-title">AI 투자 판단 리포트</h2>
+              <p class="report-news-title">{{ news.title }}</p>
+            </div>
+          </header>
+
+          <div class="report-meta">
+            <span>{{ news.publisher }}</span>
+            <span>{{ targetCompanyName || '시장 종합' }}</span>
+            <span :class="['report-sentiment', sentimentClass]">{{ sentimentLabel }}</span>
+          </div>
+
+          <section v-if="highlightFacts.length" class="report-section">
+            <p class="report-section-label">EXECUTIVE FACTS</p>
+            <h3>핵심 사실 요약</h3>
+            <ol class="report-fact-list">
+              <li v-for="(fact, idx) in highlightFacts" :key="`${idx}-${fact.sentence}`">
+                <span>[{{ idx + 1 }}]</span>
+                <p>{{ fact.sentence }}</p>
+              </li>
+            </ol>
+          </section>
+
+          <section class="report-section report-impact-section">
+            <p class="report-section-label">MARKET IMPACT</p>
+            <div class="report-impact-heading">
+              <div>
+                <h3>시장 영향도 기준</h3>
+                <p>AI가 기사 파급 범위를 0.0부터 10.0 사이로 산정합니다.</p>
+              </div>
+              <div class="report-score">
+                <span>현재 영향도</span>
+                <strong>{{ analysis.impact_score || '0.0' }}</strong>
+                <small>/ 10</small>
+              </div>
+            </div>
+            <div class="impact-scale-list">
+              <div
+                v-for="level in impactLevels"
+                :key="level.range"
+                class="impact-scale-item"
+                :class="{ active: currentImpactLevel.range === level.range }"
+              >
+                <strong>{{ level.range }}점</strong>
+                <span>{{ level.description }}</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="report-section report-sentiment-section">
+            <p class="report-section-label">AI SENTIMENT</p>
+            <h3>호재·악재·중립 판단</h3>
+            <div class="sentiment-decision-card" :class="sentimentClass">
+              <span class="sentiment-decision-label">{{ reportSentimentLabel }}</span>
+              <div>
+                <h4>{{ reportReasonTitle }}</h4>
+                <p>{{ analysis.sentiment_reason || analysis.impact_reason }}</p>
+              </div>
+            </div>
+          </section>
+
+          <section v-if="analysis.check_points?.length" class="report-section report-checkpoints">
+            <p class="report-section-label">INVESTOR CHECKLIST</p>
+            <h3>추가 확인 항목</h3>
+            <ul>
+              <li v-for="(checkpoint, idx) in analysis.check_points" :key="idx">
+                {{ checkpoint }}
+              </li>
+            </ul>
+          </section>
+
+          <footer class="report-conclusion">
+            <span>AI 종합 가이드</span>
+            <p>종합 점수와 호악재 균형을 고려해 <strong>{{ targetCompanyName || '관심 기업' }}</strong>의 수급 변화를 추적하고, 분할 접근 관점에서 리스크를 관리하세요.</p>
+          </footer>
+        </article>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, inject } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch, inject } from "vue";
 import { useRoute } from "vue-router";
 import {
   fetchNewsDetail,
@@ -291,15 +442,17 @@ const isUpdating = ref(false);
 const deletingCommentId = ref(null);
 const commentLoadError = ref("");
 const commentMutationError = ref("");
+const showAiReport = ref(false);
+const openCommentMenuId = ref(null);
 
 const toggleWatchlist = inject("toggleWatchlist");
 const isWatched = inject("isWatched");
 
 const activeTab = ref("youtube");
 const tabs = [
-  { id: "youtube", label: "📺 관련 유튜브" },
-  { id: "map", label: "📍 카카오맵" },
-  { id: "community", label: "💬 실시간 토론" }
+  { id: "youtube", label: "관련 유튜브" },
+  { id: "map", label: "카카오맵" },
+  { id: "community", label: "실시간 토론" }
 ];
 
 async function loadComments() {
@@ -345,6 +498,7 @@ async function handleCreate() {
 }
 
 function startEditing(comment) {
+  openCommentMenuId.value = null;
   editingCommentId.value = comment.id;
   editingContent.value = comment.content;
   commentMutationError.value = "";
@@ -377,6 +531,7 @@ async function handleUpdate(commentId) {
 }
 
 async function handleDelete(comment) {
+  openCommentMenuId.value = null;
   if (!window.confirm("댓글을 삭제하시겠습니까?")) return;
 
   deletingCommentId.value = comment.id;
@@ -419,16 +574,56 @@ function formatCommentTime(value) {
   if (Number.isNaN(date.getTime())) return "";
 
   return new Intl.DateTimeFormat("ko-KR", {
-    month: "numeric",
-    day: "numeric",
     hour: "numeric",
     minute: "2-digit",
   }).format(date);
 }
 
+function formatCommentDate(value) {
+  if (!value) return "";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}.${month}.${day}`;
+}
+
+function shouldShowCommentDate(index) {
+  if (index === 0) return true;
+
+  return (
+    formatCommentDate(comments.value[index]?.created_at) !==
+    formatCommentDate(comments.value[index - 1]?.created_at)
+  );
+}
+
+function toggleCommentMenu(commentId) {
+  openCommentMenuId.value =
+    openCommentMenuId.value === commentId ? null : commentId;
+}
+
+function closeCommentMenu() {
+  openCommentMenuId.value = null;
+}
+
 function getCommentError(error, fallback) {
   const data = error.response?.data;
   return data?.detail || data?.content?.[0] || fallback;
+}
+
+function openAiReport() {
+  showAiReport.value = true;
+}
+
+function closeAiReport() {
+  showAiReport.value = false;
+}
+
+function handleReportKeydown(event) {
+  if (event.key === "Escape" && showAiReport.value) closeAiReport();
 }
 
 async function loadDetail() {
@@ -448,9 +643,12 @@ async function loadDetail() {
 onMounted(() => {
   loadDetail();
   loadComments();
+  document.addEventListener("keydown", handleReportKeydown);
+  document.addEventListener("click", closeCommentMenu);
 });
 
 watch(() => route.params.id, () => {
+  closeAiReport();
   cancelEditing();
   commentContent.value = "";
   commentMutationError.value = "";
@@ -458,7 +656,77 @@ watch(() => route.params.id, () => {
   loadComments();
 });
 
+watch(showAiReport, (isOpen) => {
+  document.body.style.overflow = isOpen ? "hidden" : "";
+});
+
+onUnmounted(() => {
+  document.removeEventListener("keydown", handleReportKeydown);
+  document.removeEventListener("click", closeCommentMenu);
+  document.body.style.overflow = "";
+});
+
 const analysis = computed(() => news.value?.ai_analysis);
+
+const highlightFacts = computed(() => {
+  return Array.isArray(analysis.value?.highlight)
+    ? analysis.value.highlight.filter((item) => item?.sentence)
+    : [];
+});
+
+const briefingSentences = computed(() => {
+  const content =
+    analysis.value?.rewritten_content ||
+    news.value?.content ||
+    news.value?.description ||
+    "";
+
+  const decimalPointToken = "__DECIMAL_POINT__";
+  const protectedContent = content.replace(
+    /(\d)\.(?=\d)/g,
+    `$1${decimalPointToken}`
+  );
+
+  const sentences = protectedContent
+    .match(/[^.!?。]+(?:[.!?。]+|$)/g)
+    ?.map((sentence) =>
+      sentence.replaceAll(decimalPointToken, ".").trim()
+    )
+    .filter(Boolean) || [];
+
+  return sentences.map((text) => ({
+    text,
+    references: highlightFacts.value.reduce((references, fact, idx) => {
+      if (isMatchingFact(text, fact.sentence)) references.push(idx + 1);
+      return references;
+    }, []),
+  }));
+});
+
+function normalizeSentence(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]/gu, "");
+}
+
+function isMatchingFact(briefingSentence, factSentence) {
+  const briefing = normalizeSentence(briefingSentence);
+  const fact = normalizeSentence(factSentence);
+
+  if (!briefing || !fact) return false;
+  if (briefing.includes(fact) || fact.includes(briefing)) return true;
+
+  const factWords = String(factSentence)
+    .toLowerCase()
+    .split(/\s+/)
+    .map(normalizeSentence)
+    .filter((word) => word.length >= 2);
+
+  if (factWords.length === 0) return false;
+
+  const matchedWords = factWords.filter((word) => briefing.includes(word));
+  return matchedWords.length / factWords.length >= 0.65;
+}
 
 const sentimentLabel = computed(() => {
   const s = analysis.value?.sentiment?.toLowerCase();
@@ -467,6 +735,33 @@ const sentimentLabel = computed(() => {
 const sentimentClass = computed(() => {
   const s = analysis.value?.sentiment?.toLowerCase();
   return s === 'positive' ? 'up' : s === 'negative' ? 'down' : 'neutral';
+});
+
+const impactLevels = [
+  { range: "0~2", max: 2, description: "시장 영향 거의 없음" },
+  { range: "3~4", max: 4, description: "일부 종목·업종에 제한적 영향" },
+  { range: "5~6", max: 6, description: "관련 업종에 중간 수준 영향" },
+  { range: "7~8", max: 8, description: "시장 또는 주요 종목에 뚜렷한 영향" },
+  { range: "9~10", max: 10, description: "시장 전반 또는 핵심 대형주에 매우 강한 영향" },
+];
+
+const currentImpactLevel = computed(() => {
+  const score = Number(analysis.value?.impact_score) || 0;
+  return impactLevels.find((level) => score <= level.max) || impactLevels[impactLevels.length - 1];
+});
+
+const reportSentimentLabel = computed(() => {
+  const sentiment = analysis.value?.sentiment?.toLowerCase();
+  if (sentiment === "positive") return "호재";
+  if (sentiment === "negative") return "악재";
+  return "중립";
+});
+
+const reportReasonTitle = computed(() => {
+  const sentiment = analysis.value?.sentiment?.toLowerCase();
+  if (sentiment === "positive") return "호재 이유";
+  if (sentiment === "negative") return "악재 이유";
+  return "중립 판단 이유";
 });
 
 // 💡 3중 방어막 스캔: 백엔드가 어떤 형태(뱀직구, 카멜)로 키를 던져주든 무조건 회사명을 찾아내는 인텔리전스 파서
@@ -499,36 +794,65 @@ const targetCompanyName = computed(() => {
 @keyframes spin { to { transform: rotate(360deg); } }
 .detail-scroll-area { flex: 1; overflow-y: auto; padding: 24px; text-align: left; }
 .detail-header { display: flex; flex-direction: column; gap: 12px; }
-.detail-meta-row { display: flex; align-items: center; font-size: 13px; color: var(--text3, #64748b); }
+.detail-meta-row { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; font-size: 13px; color: var(--text3, #64748b); }
 .meta-divider { margin: 0 8px; color: var(--border, #e2e8f0); }
+.impact-meta { color: #334155; font-weight: 700; }
 .sentiment-tag { padding: 4px 10px; border-radius: 4px; font-size: 11.5px; font-weight: 700; }
 .sentiment-tag.up { background: #e8f5e9; color: #2e7d32; }
 .sentiment-tag.down { background: #ffebee; color: #c62828; }
 .sentiment-tag.neutral { background: #f1f5f9; color: #475569; }
 .detail-title { font-size: 22px; font-weight: 800; color: var(--text1, #1e293b); line-height: 1.4; }
 .action-bar-row { display: flex; justify-content: space-between; align-items: center; font-size: 13.5px; color: var(--text2, #475569); margin-top: 4px; }
+.detail-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.report-open-btn { display: inline-flex; align-items: center; gap: 10px; padding: 9px 16px; border: 1px solid var(--primary, #ff5a1f); border-radius: 9px; background: var(--primary, #ff5a1f); color: #ffffff; font-size: 12.5px; font-weight: 750; cursor: pointer; box-shadow: 0 6px 18px rgba(255, 90, 31, 0.18); transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease; }
+.report-open-btn:hover { transform: translateY(-1px); background: var(--primary-hover, #e94f18); box-shadow: 0 9px 22px rgba(255, 90, 31, 0.24); }
+.report-open-btn span { font-size: 15px; transition: transform 0.15s ease; }
+.report-open-btn:hover span { transform: translateX(3px); }
 .watchlist-toggle-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border, #e2e8f0); background: #ffffff; font-size: 12.5px; font-weight: 600; color: var(--text2, #475569); cursor: pointer; transition: all 0.15s ease; }
 .watchlist-toggle-btn:hover { border-color: var(--primary-border, #ffe2d5); color: var(--primary, #ff5a1f); background: var(--primary-bg, #fff5f1); }
 .watchlist-toggle-btn.is-active { background: var(--primary, #ff5a1f); color: #ffffff; border-color: var(--primary, #ff5a1f); }
 .star-icon { width: 14px; height: 14px; fill: currentColor; }
 .section-divider { border: none; border-top: 1px solid var(--border, #e2e8f0); margin: 16px 0 20px; }
-.dashboard-upper-grid { display: flex; gap: 32px; align-items: flex-start; }
+.dashboard-upper-grid { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr); gap: 24px; align-items: flex-start; }
 .upper-left-content { flex: 1.1; min-width: 420px; }
-.upper-right-widgets { flex: 0.9; min-width: 380px; position: sticky; top: 0; }
-.section-sub-title { font-size: 15px; font-weight: 700; color: var(--text1, #1e293b); margin: 0 0 12px 0; border-left: 3px solid var(--primary, #ff5a1f); padding-left: 8px; }
-.upper-left-content section, .upper-left-content article { margin-bottom: 24px; }
-.rewritten-box { font-size: 14.5px; color: #334155; line-height: 1.75; background: #fffdfb; padding: 16px; border-radius: 8px; border: 1px dashed #ffdcd0; margin: 0; }
+.upper-right-widgets { flex: 0.9; min-width: 380px; display: flex; flex-direction: column; gap: 20px; }
+.section-sub-title, .lower-section-title { display: flex; align-items: center; gap: 9px; color: var(--text1, #1e293b); }
+.section-sub-title { font-size: 15px; font-weight: 750; margin: 0 0 16px; }
+.section-index { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 22px; padding: 0 7px; border-radius: 6px; background: #fff1e8; color: #c2410c; font-size: 10px; font-weight: 850; letter-spacing: 0.04em; }
+.upper-left-content section, .upper-left-content article { margin-bottom: 20px; }
+.detail-article-body, .ai-terms-section, .ai-checkpoint-section, .ai-highlight-section, .related-widgets-section {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 5px 18px rgba(15, 23, 42, 0.035);
+}
+.rewritten-box { display: flex; flex-direction: column; gap: 9px; font-size: 14.5px; color: #334155; line-height: 1.75; background: #ffffff; padding: 18px; border-radius: 12px; border: 1px solid #e2e8f0; margin: 0; }
+.briefing-sentence { margin: 0; padding: 4px 8px; border-radius: 6px; }
+.briefing-sentence.is-highlighted { background: #fff7ed; color: #9a3412; font-weight: 650; box-shadow: inset 3px 0 0 #fb923c; }
+.briefing-reference { margin-left: 3px; color: #ea580c; font-size: 10.5px; font-weight: 800; vertical-align: super; }
 .highlight-list { display: flex; flex-direction: column; gap: 10px; }
-.highlight-item-box { background: #fffdeb; border-left: 4px solid #f59e0b; padding: 12px 14px; border-radius: 0 8px 8px 0; }
-.hl-sentence { font-size: 14px; font-weight: 700; color: #b45309; }
-.hl-reason { font-size: 12.5px; color: var(--text2, #475569); margin-top: 4px; }
-.terms-pill-grid { display: flex; flex-direction: column; gap: 8px; }
-.term-detail-card { background: #f1f5f9; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; }
-.term-badge-name { font-size: 12px; font-weight: 700; background: #475569; color: #ffffff; padding: 2px 8px; border-radius: 4px; display: inline-block; }
-.term-explanation-txt { font-size: 13px; color: #334155; margin-top: 6px; line-height: 1.5; }
+.highlight-item-box { display: flex; align-items: flex-start; gap: 12px; background: #ffffff; border: 1px solid #fed7aa; padding: 14px; border-radius: 10px; box-shadow: 0 5px 18px rgba(15, 23, 42, 0.04); }
+.fact-reference { flex-shrink: 0; min-width: 34px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 7px; background: #fff7ed; color: #ea580c; font-size: 12px; font-weight: 800; }
+.fact-content { min-width: 0; }
+.hl-sentence { font-size: 14px; line-height: 1.55; font-weight: 750; color: #1e293b; margin: 0; }
+.hl-reason { font-size: 12.5px; line-height: 1.5; color: var(--text2, #475569); margin: 6px 0 0; }
+.highlight-empty-state { padding: 40px 20px; border: 1px dashed #cbd5e1; border-radius: 12px; color: #94a3b8; font-size: 13px; text-align: center; background: #f8fafc; }
+.terms-pill-grid { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; }
+.term-detail-card { min-width: 120px; max-width: 100%; background: #fff3ec; border-radius: 8px; border: 1px solid #ffd9c7; overflow: hidden; transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease; }
+.term-detail-card:hover { background: #ffe9dd; border-color: #ffc5aa; box-shadow: 0 4px 14px rgba(255, 90, 31, 0.08); }
+.term-detail-card[open] { background: #ffffff; border-color: #ffb38f; box-shadow: 0 4px 14px rgba(255, 90, 31, 0.08); }
+.term-detail-card[open] { flex-basis: 100%; }
+.term-badge-name { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 12px; color: #c2410c; font-size: 12.5px; font-weight: 750; cursor: pointer; list-style: none; user-select: none; }
+.term-badge-name::-webkit-details-marker { display: none; }
+.term-toggle-icon { color: var(--primary, #ff5a1f); font-size: 16px; line-height: 1; transition: transform 0.15s ease; }
+.term-detail-card[open] .term-toggle-icon { transform: rotate(45deg); }
+.term-explanation-txt { padding: 0 12px 12px; font-size: 13px; color: #475569; margin: 0; line-height: 1.6; }
 .checkpoint-list { padding-left: 18px; color: #475569; font-size: 13.5px; line-height: 1.7; margin: 0; }
 .checkpoint-list li { margin-bottom: 6px; list-style-type: square; }
-.widget-tabs-bar { display: flex; background: var(--bg2, #f8fafc); border: 1px solid var(--border, #e2e8f0); padding: 4px; border-radius: 8px; gap: 4px; }
+.related-widgets-section { margin-top: 0; }
+.related-widgets-panel { width: 100%; }
+.widget-tabs-bar { display: flex; background: #f1f5f9; border: none; padding: 4px; border-radius: 9px; gap: 4px; }
 .tab-btn { flex: 1; border: none; background: transparent; padding: 10px 0; font-size: 13px; font-weight: 600; color: var(--text2, #475569); border-radius: 6px; cursor: pointer; transition: all 0.15s ease; }
 .tab-btn:hover { color: var(--primary, #ff5a1f); }
 .tab-btn.active { background: #ffffff; color: var(--primary, #ff5a1f); font-weight: 700; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04); }
@@ -543,22 +867,36 @@ const targetCompanyName = computed(() => {
 .pane-component-scroller::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
 .empty-pane-box { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 12.5px; color: var(--text3, #64748b); border: 1px dashed var(--border, #e2e8f0); border-radius: 8px; }
 .community-chat-container { flex: 1; display: flex; flex-direction: column; justify-content: space-between; min-height: 300px; }
-.chat-scroller { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; max-height: 260px; overflow-y: auto; }
-.comment-state { margin: auto; padding: 48px 12px; color: var(--text3, #94a3b8); font-size: 12.5px; text-align: center; }
+.chat-scroller { flex: 1; min-height: 280px; display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; max-height: 320px; overflow-y: auto; }
+.comment-state { flex: 1; min-height: 260px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 12px; color: var(--text3, #94a3b8); font-size: 12.5px; text-align: center; }
 .comment-state.error { color: #dc2626; }
 .comment-state button { margin-top: 8px; padding: 6px 10px; border: 1px solid var(--border, #e2e8f0); border-radius: 6px; background: #ffffff; color: var(--text2, #475569); cursor: pointer; }
-.msg { display: flex; flex-direction: column; max-width: 85%; padding: 10px; border-radius: 8px; font-size: 12.5px; line-height: 1.45; }
-.msg.received { background: var(--bg2, #f8fafc); border: 1px solid var(--border, #e2e8f0); align-self: flex-start; border-top-left-radius: 0; }
-.msg.sent { background: var(--primary-bg, #fff5f1); border: 1px solid var(--primary-border, #ffe2d5); align-self: flex-end; border-top-right-radius: 0; }
+.comment-entry { width: 100%; }
+.chat-date-divider { display: flex; align-items: center; gap: 12px; width: 100%; margin: 12px 0 18px; color: #94a3b8; font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; }
+.chat-date-divider::before, .chat-date-divider::after { content: ""; flex: 1; height: 1px; background: #e2e8f0; }
+.chat-date-divider span { white-space: nowrap; }
+.comment-message-row { display: flex; align-items: flex-end; gap: 7px; width: 100%; }
+.comment-message-row.received { justify-content: flex-start; }
+.comment-message-row.sent { justify-content: flex-end; }
+.comment-message-row.sent .msg { order: 2; }
+.comment-message-row.sent .chat-time { order: 1; }
+.msg { display: flex; flex-direction: column; max-width: 78%; padding: 10px; border-radius: 8px; font-size: 12.5px; line-height: 1.45; }
+.msg.received { background: var(--bg2, #f8fafc); border: 1px solid var(--border, #e2e8f0); border-top-left-radius: 0; }
+.msg.sent { background: var(--primary-bg, #fff5f1); border: 1px solid var(--primary-border, #ffe2d5); border-top-right-radius: 0; }
 .comment-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.comment-actions { display: flex; gap: 6px; }
-.comment-actions button, .edit-actions button { border: none; background: transparent; color: var(--text3, #94a3b8); font-size: 10.5px; cursor: pointer; }
-.comment-actions button:hover, .edit-actions button:hover { color: var(--primary, #ff5a1f); }
-.comment-actions button:disabled, .edit-actions button:disabled { opacity: 0.45; cursor: not-allowed; }
+.comment-menu { position: relative; margin: -5px -4px -3px 0; }
+.comment-menu-trigger { width: 24px; height: 20px; border: none; background: transparent; color: #94a3b8; font-size: 17px; line-height: 1; cursor: pointer; border-radius: 5px; }
+.comment-menu-trigger:hover { background: rgba(255,255,255,0.72); color: #c2410c; }
+.comment-menu-popover { position: absolute; top: 23px; right: 0; z-index: 5; min-width: 82px; padding: 4px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14); }
+.comment-menu-popover button { display: block; width: 100%; padding: 7px 10px; border: none; border-radius: 5px; background: transparent; color: #475569; font-size: 11.5px; text-align: left; cursor: pointer; }
+.comment-menu-popover button:hover { background: #fff1e8; color: #c2410c; }
+.comment-menu-popover button:disabled, .edit-actions button:disabled { opacity: 0.45; cursor: not-allowed; }
+.edit-actions button { border: none; background: transparent; color: var(--text3, #94a3b8); font-size: 10.5px; cursor: pointer; }
+.edit-actions button:hover { color: var(--primary, #ff5a1f); }
 .chat-user { font-size: 11px; font-weight: 700; color: var(--text3, #64748b); margin-bottom: 2px; }
 .msg.sent .chat-user { color: var(--primary, #ff5a1f); }
 .msg-txt { margin: 4px 0 0; color: var(--text1, #1e293b); white-space: pre-wrap; overflow-wrap: anywhere; }
-.chat-time { font-size: 10px; color: var(--text3, #94a3b8); align-self: flex-end; margin-top: 4px; }
+.chat-time { flex-shrink: 0; padding-bottom: 2px; color: var(--text3, #94a3b8); font-size: 9.5px; white-space: nowrap; }
 .comment-edit-input { width: 100%; margin-top: 6px; padding: 8px 10px; resize: vertical; border: 1px solid var(--primary-border, #ffe2d5); border-radius: 6px; outline: none; font: inherit; line-height: 1.45; }
 .comment-edit-input:focus { border-color: var(--primary, #ff5a1f); }
 .edit-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
@@ -571,8 +909,8 @@ const targetCompanyName = computed(() => {
 .chat-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .comment-login-notice { border-top: 1px solid var(--border, #e2e8f0); padding-top: 14px; color: var(--text3, #94a3b8); font-size: 12.5px; text-align: center; }
 .comment-login-notice a { color: var(--primary, #ff5a1f); font-weight: 700; }
-.dashboard-lower-analysis { margin-top: 32px; padding-top: 24px; border-top: 1px dashed var(--border, #e2e8f0); }
-.lower-section-title { font-size: 17px; font-weight: 800; color: var(--text1, #1e293b); margin-bottom: 20px; border-left: 4px solid var(--primary, #ff5a1f); padding-left: 10px; }
+.dashboard-lower-analysis { margin-top: 24px; padding: 22px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; }
+.lower-section-title { font-size: 17px; font-weight: 800; margin: 0 0 20px; }
 .ai-analysis-grid { display: flex; gap: 20px; }
 @media (max-width: 768px) { .ai-analysis-grid { flex-direction: column; } }
 .analysis-opinion-card { flex: 1; background-color: var(--bg2, #f8fafc); border: 1px solid var(--border, #e2e8f0); border-radius: 12px; padding: 20px; border-top: 4px solid #64748b; }
@@ -580,11 +918,137 @@ const targetCompanyName = computed(() => {
 .analysis-opinion-card.negative-side { border-top-color: var(--primary, #ff5a1f); }
 .opinion-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
 .opinion-card-header h3 { font-size: 15.5px; font-weight: 700; color: var(--text1, #1e293b); margin: 0; }
-.opinion-icon { font-size: 18px; }
+.opinion-status { display: inline-flex; align-items: center; justify-content: center; min-width: 38px; height: 24px; padding: 0 8px; border-radius: 999px; font-size: 10.5px; font-weight: 800; }
+.opinion-status.positive { background: #ecfdf5; color: #047857; }
+.opinion-status.caution { background: #fff1e8; color: #c2410c; }
 .opinion-content-body { display: flex; flex-direction: column; gap: 12px; }
 .opinion-reason-summary { font-size: 13.5px; color: var(--text1, #1e293b); line-height: 1.5; background: #ffffff; padding: 10px; border-radius: 6px; border: 1px solid var(--border, #e2e8f0); }
 .opinion-sub-card { background: #ffffff; padding: 12px; border-radius: 6px; border: 1px solid var(--border, #e2e8f0); }
 .opinion-label { font-size: 11px; font-weight: 700; color: var(--text3, #94a3b8); display: block; margin-bottom: 4px; }
 .opinion-desc { font-size: 13px; color: var(--text2, #475569); line-height: 1.5; margin: 0; }
 .ai-summary-footer-bar { margin-top: 20px; background-color: var(--bg2, #f8fafc); border: 1px solid var(--border, #e2e8f0); border-radius: 8px; padding: 16px; border-left: 4px solid var(--primary, #ff5a1f); font-size: 13.5px; line-height: 1.6; color: var(--text1, #1e293b); }
+
+.report-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 32px;
+  overflow-y: auto;
+  background: rgba(15, 23, 42, 0.68);
+  backdrop-filter: blur(7px);
+  perspective: 1600px;
+}
+.report-paper {
+  position: relative;
+  width: min(1040px, 100%);
+  min-height: calc(100vh - 64px);
+  padding: 52px 58px;
+  background:
+    linear-gradient(rgba(148, 163, 184, 0.055) 1px, transparent 1px),
+    #fffefb;
+  background-size: 100% 32px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 4px;
+  box-shadow: 0 32px 90px rgba(15, 23, 42, 0.34);
+  color: #172033;
+  transform-origin: right center;
+}
+.report-paper::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 28px;
+  width: 1px;
+  background: #fed7aa;
+}
+.report-close-btn { position: absolute; top: 20px; right: 22px; width: 36px; height: 36px; border: 1px solid #e2e8f0; border-radius: 50%; background: rgba(255,255,255,0.9); color: #64748b; font-size: 23px; line-height: 1; cursor: pointer; transition: color 0.15s ease, border-color 0.15s ease, transform 0.15s ease; }
+.report-close-btn:hover { color: #c2410c; border-color: #fdba74; transform: rotate(4deg); }
+.report-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; padding-bottom: 24px; border-bottom: 2px solid #1e293b; }
+.report-kicker { margin: 0 0 8px; color: #c2410c; font-size: 10.5px; font-weight: 850; letter-spacing: 0.14em; }
+.report-header h2 { margin: 0; color: #0f172a; font-size: 34px; line-height: 1.2; letter-spacing: -0.04em; }
+.report-news-title { max-width: 800px; margin: 14px 0 0; color: #334155; font-size: 16px; font-weight: 600; line-height: 1.65; }
+.report-score { flex-shrink: 0; min-width: 120px; padding: 16px; border: 1px solid #fed7aa; background: #fff7ed; text-align: center; }
+.report-score span { display: block; color: #9a3412; font-size: 10.5px; font-weight: 750; }
+.report-score strong { display: inline-block; margin-top: 5px; color: #c2410c; font-size: 32px; line-height: 1; }
+.report-score small { color: #94a3b8; font-size: 11px; }
+.report-meta { display: flex; align-items: center; gap: 10px; padding: 16px 0; border-bottom: 1px solid #dbe3ec; color: #475569; font-size: 13px; }
+.report-meta > span:not(:last-child)::after { content: "/"; margin-left: 10px; color: #cbd5e1; }
+.report-sentiment { padding: 3px 8px; border-radius: 999px; font-weight: 750; }
+.report-sentiment.up { background: #ecfdf5; color: #047857; }
+.report-sentiment.down { background: #fef2f2; color: #b91c1c; }
+.report-sentiment.neutral { background: #f1f5f9; color: #475569; }
+.report-section { margin-top: 34px; }
+.report-section-label { margin: 0 0 6px; color: #c2410c; font-size: 10.5px; font-weight: 850; letter-spacing: 0.13em; }
+.report-section h3 { margin: 0 0 16px; color: #0f172a; font-size: 20px; }
+.report-fact-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+.report-fact-list li { display: flex; gap: 10px; padding: 13px; border: 1px solid #e2e8f0; background: rgba(255,255,255,0.78); }
+.report-fact-list li > span { flex-shrink: 0; color: #c2410c; font-size: 11px; font-weight: 850; }
+.report-fact-list p { margin: 0; color: #26354a; font-size: 14.5px; font-weight: 600; line-height: 1.65; }
+.report-analysis-grid { margin-top: 30px; }
+.report-impact-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 16px; }
+.report-impact-heading h3 { margin-bottom: 6px; }
+.report-impact-heading p { margin: 0; color: #64748b; font-size: 13.5px; }
+.impact-scale-list { display: flex; flex-direction: column; gap: 8px; }
+.impact-scale-item { display: grid; grid-template-columns: 90px 1fr; align-items: center; gap: 14px; padding: 11px 14px; border: 1px solid #e2e8f0; background: rgba(255,255,255,0.78); color: #475569; }
+.impact-scale-item strong { color: #334155; font-size: 14px; }
+.impact-scale-item span { font-size: 14px; line-height: 1.5; }
+.impact-scale-item.active { border-color: #fb923c; background: #fff7ed; box-shadow: inset 4px 0 0 #f97316; }
+.impact-scale-item.active strong, .impact-scale-item.active span { color: #9a3412; font-weight: 750; }
+.report-sentiment-section { padding-top: 4px; }
+.sentiment-decision-card { display: grid; grid-template-columns: 82px 1fr; gap: 18px; align-items: flex-start; padding: 20px; border: 1px solid #dbe3ec; background: #f8fafc; }
+.sentiment-decision-label { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; border-radius: 8px; font-size: 15px; font-weight: 850; }
+.sentiment-decision-card h4 { margin: 0 0 8px; color: #0f172a; font-size: 17px; }
+.sentiment-decision-card p { margin: 0; color: #334155; font-size: 15px; line-height: 1.7; }
+.sentiment-decision-card.up { border-color: #a7f3d0; background: #f0fdf4; }
+.sentiment-decision-card.up .sentiment-decision-label { background: #dcfce7; color: #047857; }
+.sentiment-decision-card.down { border-color: #fecaca; background: #fff7f7; }
+.sentiment-decision-card.down .sentiment-decision-label { background: #fee2e2; color: #b91c1c; }
+.sentiment-decision-card.neutral { border-color: #cbd5e1; background: #f8fafc; }
+.sentiment-decision-card.neutral .sentiment-decision-label { background: #e2e8f0; color: #475569; }
+.report-checkpoints ul { display: flex; flex-direction: column; gap: 9px; margin: 0; padding: 16px; background: rgba(248,250,252,0.9); border: 1px solid #dbe3ec; list-style: none; }
+.report-checkpoints li { position: relative; padding: 12px 14px 12px 36px; border-bottom: 1px solid #e2e8f0; color: #334155; font-size: 14.5px; line-height: 1.65; }
+.report-checkpoints li:last-child { border-bottom: 0; }
+.report-checkpoints li::before { content: counter(list-item, decimal-leading-zero); position: absolute; left: 8px; top: 12px; color: #c2410c; font-size: 11px; font-weight: 850; }
+.report-conclusion { display: grid; grid-template-columns: 120px 1fr; gap: 20px; margin-top: 30px; padding: 18px 20px; border-top: 2px solid #1e293b; border-bottom: 1px solid #cbd5e1; background: rgba(248,250,252,0.72); }
+.report-conclusion span { color: #c2410c; font-size: 12.5px; font-weight: 850; }
+.report-conclusion p { margin: 0; color: #26354a; font-size: 15px; line-height: 1.75; }
+
+.report-page-turn-enter-active { transition: opacity 0.24s ease; }
+.report-page-turn-leave-active { transition: opacity 0.18s ease; }
+.report-page-turn-enter-from, .report-page-turn-leave-to { opacity: 0; }
+.report-page-turn-enter-active .report-paper { animation: report-page-open 0.52s cubic-bezier(0.2, 0.75, 0.25, 1) both; }
+.report-page-turn-leave-active .report-paper { animation: report-page-close 0.2s ease both; }
+@keyframes report-page-open {
+  from { opacity: 0; transform: translateX(70px) rotateY(-18deg) scale(0.97); }
+  to { opacity: 1; transform: translateX(0) rotateY(0) scale(1); }
+}
+@keyframes report-page-close {
+  from { opacity: 1; transform: translateX(0) rotateY(0) scale(1); }
+  to { opacity: 0; transform: translateX(35px) rotateY(-8deg) scale(0.98); }
+}
+
+@media (max-width: 1024px) {
+  .dashboard-upper-grid { display: flex; flex-direction: column; }
+  .upper-left-content, .upper-right-widgets { width: 100%; min-width: 0; }
+}
+
+@media (max-width: 768px) {
+  .action-bar-row { align-items: flex-start; gap: 12px; }
+  .detail-actions { flex-wrap: wrap; justify-content: flex-end; }
+  .report-overlay { padding: 0; }
+  .report-paper { min-height: 100vh; padding: 52px 24px 36px 38px; border: 0; border-radius: 0; }
+  .report-paper::before { left: 20px; }
+  .report-header { flex-direction: column; }
+  .report-header h2 { font-size: 25px; }
+  .report-score { width: 100%; }
+  .report-fact-list { grid-template-columns: 1fr; }
+  .report-impact-heading { flex-direction: column; }
+  .impact-scale-item { grid-template-columns: 72px 1fr; }
+  .sentiment-decision-card { grid-template-columns: 1fr; }
+  .report-conclusion { grid-template-columns: 1fr; gap: 8px; }
+}
 </style>
