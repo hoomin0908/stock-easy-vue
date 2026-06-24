@@ -30,13 +30,33 @@
         </svg>
       </button>
 
-      <div v-if="isAuthenticated" class="icon-btn" title="검색(TODO: 검색 기능)">
-        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-      </div>
-      <div v-if="isAuthenticated" class="icon-btn" title="알림 (TODO: 알림 기능)">
-        <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
-      </div>
-
+      <form
+        v-if="isAuthenticated"
+        class="top-search-form"
+        :class="{ active: isSearchOpen || searchKeyword }"
+        role="search"
+        @submit.prevent="submitSearch"
+      >
+        <input
+          v-if="isSearchOpen || searchKeyword"
+          ref="searchInput"
+          v-model.trim="searchKeyword"
+          type="search"
+          class="top-search-input"
+          placeholder="주제 검색"
+          aria-label="뉴스 주제 검색"
+          @keydown.esc="closeSearch"
+        />
+        <button
+          type="button"
+          class="icon-btn"
+          title="뉴스 주제 검색"
+          aria-label="뉴스 주제 검색"
+          @click="handleSearchButtonClick"
+        >
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+        </button>
+      </form>
       <template v-if="isAuthenticated">
         <div class="avatar">{{ displayName }}</div>
         <button class="logout-btn" :disabled="isLoggingOut" @click="handleLogout">
@@ -53,7 +73,7 @@
 </template>
 
 <script setup>
-import { computed, inject, ref } from "vue";
+import { computed, inject, nextTick, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuth } from "../../services/auth";
 
@@ -63,6 +83,9 @@ const { currentUser, isAuthenticated, logout } = useAuth();
 const isLoggingOut = ref(false);
 const themeMode = inject("themeMode", ref("light"));
 const toggleTheme = inject("toggleTheme", () => {});
+const isSearchOpen = ref(false);
+const searchKeyword = ref("");
+const searchInput = ref(null);
 
 const displayName = computed(
   () => currentUser.value?.nickname || currentUser.value?.email || "사용자"
@@ -76,6 +99,54 @@ const loginLink = computed(() => ({
   path: "/login",
   query: route.meta.authPage ? {} : { redirect: route.fullPath },
 }));
+
+watch(
+  () => route.query.sector,
+  (sector) => {
+    searchKeyword.value = typeof sector === "string" ? sector : "";
+    isSearchOpen.value = Boolean(searchKeyword.value);
+  },
+  { immediate: true }
+);
+
+async function openSearch() {
+  isSearchOpen.value = true;
+  await nextTick();
+  searchInput.value?.focus();
+}
+
+function closeSearch() {
+  if (searchKeyword.value) return;
+  isSearchOpen.value = false;
+}
+
+function handleSearchButtonClick() {
+  if (!isSearchOpen.value && !searchKeyword.value) {
+    openSearch();
+    return;
+  }
+
+  submitSearch();
+}
+
+function submitSearch() {
+  const keyword = searchKeyword.value.trim();
+
+  if (!keyword) {
+    if (route.query.sector) {
+      const query = { ...route.query };
+      delete query.sector;
+      router.push({ path: "/news", query });
+    }
+    isSearchOpen.value = false;
+    return;
+  }
+
+  router.push({
+    path: "/news",
+    query: { sector: keyword },
+  });
+}
 
 async function handleLogout() {
   if (isLoggingOut.value) return;
@@ -150,6 +221,32 @@ async function handleLogout() {
 }
 
 .nav-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.top-search-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.top-search-form.active {
+  min-width: 190px;
+}
+.top-search-input {
+  width: 150px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--cream);
+  color: var(--text1);
+  padding: 0 10px;
+  font-size: 12.5px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, width 0.15s ease;
+}
+.top-search-input:focus {
+  width: 180px;
+  border-color: var(--primary-border);
+  box-shadow: 0 0 0 3px rgba(255, 106, 0, 0.08);
+}
+.top-search-input::placeholder { color: var(--text3); }
 .theme-toggle-btn {
   width: 36px;
   height: 36px;
@@ -211,4 +308,10 @@ async function handleLogout() {
 }
 .signup-link:hover { background: var(--primary-hover); }
 .logout-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+@media (max-width: 900px) {
+  .top-search-form.active { min-width: 150px; }
+  .top-search-input,
+  .top-search-input:focus { width: 112px; }
+}
 </style>

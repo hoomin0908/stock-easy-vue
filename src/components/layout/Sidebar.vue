@@ -1,8 +1,7 @@
 <template>
   <aside
     class="sidebar"
-    :class="{ collapsed: !isOpen, resizing: isResizing }"
-    :style="isOpen ? { width: `${sidebarWidth}px` } : undefined"
+    :class="{ collapsed: !isOpen }"
   >
     <button class="toggle-btn" :title="isOpen ? '사이드바 닫기' : '사이드바 열기'" @click="isOpen = !isOpen">
       <svg viewBox="0 0 24 24" :style="{ transform: isOpen ? 'none' : 'rotate(180deg)' }">
@@ -177,11 +176,11 @@
         <div v-else class="sector-grid-layout">
           <button
             v-for="theme in recommendedThemes"
-            :key="theme.id"
+            :key="theme.id || theme.name"
             type="button"
             class="luxury-sector-chip"
             :class="{
-              active: String(route.query.themeId) === String(theme.id)
+              active: isRecommendedThemeActive(theme)
             }"
             @click="selectRecommendedTheme(theme)"
           >
@@ -222,17 +221,6 @@
         </button>
       </div>
     </div>
-
-    <div
-      v-if="isOpen"
-      class="sidebar-resizer"
-      role="separator"
-      aria-label="사이드바 너비 조절"
-      aria-orientation="vertical"
-      @pointerdown="startResize"
-    >
-      <span></span>
-    </div>
   </aside>
 </template>
 
@@ -251,8 +239,6 @@ import {
 const route = useRoute();
 const router = useRouter();
 const isOpen = ref(true);
-const sidebarWidth = ref(250);
-const isResizing = ref(false);
 const activeSection = ref("watchlist");
 const themeSearch = ref("");
 const { currentUser, isAuthenticated } = useAuth();
@@ -338,11 +324,16 @@ async function loadRecommendedThemes() {
 
   try {
     const { data } = await fetchRecommendedThemes();
-    recommendedThemes.value = normalizeList(data);
+    const apiThemes = normalizeList(data).map(normalizeTheme).filter(theme => theme.name);
+    recommendedThemes.value = apiThemes.length > 0
+      ? apiThemes
+      : buildRecommendedThemesFromInterests();
   } catch (error) {
     console.error("추천 테마 조회 실패", error);
-    recommendedThemes.value = [];
-    recommendedThemesError.value = "추천 테마를 불러오지 못했습니다.";
+    recommendedThemes.value = buildRecommendedThemesFromInterests();
+    recommendedThemesError.value = recommendedThemes.value.length > 0
+      ? ""
+      : "추천 테마를 불러오지 못했습니다.";
   } finally {
     isRecommendedThemesLoading.value = false;
   }
@@ -350,7 +341,7 @@ async function loadRecommendedThemes() {
 
 function selectInterestStock(interest) {
   router.push({
-    path: "/",
+    path: "/news",
     query: {
       stockId: interest.stock.id,
       stockName: interest.stock.stock_name,
@@ -359,19 +350,110 @@ function selectInterestStock(interest) {
 }
 
 async function selectRecommendedTheme(theme) {
+  const themeQuery = theme.id
+    ? { themeId: String(theme.id), themeName: theme.name }
+    : { sector: theme.name };
+
   await router.push({
-    path: "/",
-    query: {
-      themeId: String(theme.id),
-      themeName: theme.name,
-    },
+    path: "/news",
+    query: themeQuery,
   });
 }
 
 function normalizeList(data) {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.results)) return data.results;
+  if (Array.isArray(data?.themes)) return data.themes;
+  if (Array.isArray(data?.recommended_themes)) return data.recommended_themes;
+  if (Array.isArray(data?.recommendedThemes)) return data.recommendedThemes;
+  if (Array.isArray(data?.data)) return data.data;
   return [];
+}
+
+function normalizeTheme(theme) {
+  if (typeof theme === "string") {
+    return { id: null, name: theme };
+  }
+
+  if (!theme || typeof theme !== "object") {
+    return { id: null, name: "" };
+  }
+
+  return {
+    ...theme,
+    id: theme.id ?? theme.theme_id ?? theme.theme?.id ?? null,
+    name: theme.name || theme.theme_name || theme.title || theme.theme?.name || theme.theme?.theme_name || "",
+  };
+}
+
+function uniqueThemes(themes) {
+  const seen = new Set();
+
+  return themes.filter(theme => {
+    if (!theme.name || seen.has(theme.name)) return false;
+    seen.add(theme.name);
+    return true;
+  });
+}
+
+function buildRecommendedThemesFromInterests() {
+  const themes = [];
+
+  interestStocks.value.forEach((interest) => {
+    const stock = interest.stock || {};
+    const rawThemes = [
+      ...(Array.isArray(stock.themes) ? stock.themes : []),
+      ...(Array.isArray(stock.related_themes) ? stock.related_themes : []),
+      ...(Array.isArray(stock.sectors) ? stock.sectors : []),
+      stock.theme,
+      stock.theme_name,
+      stock.sector,
+      stock.industry,
+    ].filter(Boolean);
+
+    rawThemes.forEach(theme => {
+      themes.push(normalizeTheme(theme));
+    });
+
+    inferThemesFromStock(stock).forEach(themeName => {
+      themes.push({ id: null, name: themeName });
+    });
+  });
+
+  return uniqueThemes(themes).slice(0, 8);
+}
+
+function inferThemesFromStock(stock) {
+  const text = [
+    stock.stock_name,
+    stock.name,
+    stock.stock_code,
+  ].filter(Boolean).join(" ");
+
+  const hints = [
+    { theme: "반도체", keywords: ["삼성전자", "SK하이닉스", "하이닉스", "DB하이텍", "한미반도체"] },
+    { theme: "IT · 플랫폼", keywords: ["네이버", "NAVER", "카카오", "KAKAO"] },
+    { theme: "자동차", keywords: ["현대차", "현대자동차", "기아", "현대모비스"] },
+    { theme: "바이오", keywords: ["셀트리온", "삼성바이오", "유한양행", "한미약품"] },
+    { theme: "금융", keywords: ["KB", "신한", "우리금융", "하나금융", "은행", "증권"] },
+    { theme: "에너지", keywords: ["SK이노베이션", "S-Oil", "한국전력", "한화솔루션"] },
+    { theme: "2차전지", keywords: ["LG에너지솔루션", "삼성SDI", "에코프로", "포스코퓨처"] },
+    { theme: "엔터테인먼트", keywords: ["하이브", "JYP", "SM", "와이지", "YG"] },
+    { theme: "우주항공", keywords: ["한화에어로", "KAI", "한국항공우주"] },
+    { theme: "인공지능(AI)", keywords: ["로보", "AI", "인공지능"] },
+  ];
+
+  return hints
+    .filter(({ keywords }) => keywords.some(keyword => text.includes(keyword)))
+    .map(({ theme }) => theme);
+}
+
+function isRecommendedThemeActive(theme) {
+  if (theme.id) {
+    return String(route.query.themeId) === String(theme.id);
+  }
+
+  return route.query.sector === theme.name;
 }
 
 async function loadStocks() {
@@ -439,7 +521,7 @@ async function removeInterestStock(interest) {
   try {
     await deleteInterestStock(interest.id);
     if (String(route.query.stockId) === String(interest.stock.id)) {
-      await router.push("/");
+      await router.push("/news");
     }
     await Promise.all([loadInterestStocks(), loadRecommendedThemes()]);
   } catch (error) {
@@ -478,10 +560,8 @@ function handleThemeClick(theme) {
   activeTheme.value = theme;
   // 주소창에 ?sector=테마명 파라미터를 넘겨주어 NewsFeedView와 동기화
   router.push({
-    path: "/",
-    query: {
-      sector: theme === "전체" ? undefined : theme,
-    },
+    path: "/news",
+    query: theme === "전체" ? {} : { sector: theme },
   });
 }
 
@@ -514,6 +594,14 @@ watch(stockSearch, () => {
   searchTimer = window.setTimeout(loadStocks, 300);
 });
 
+watch(
+  () => route.query.sector,
+  (sector) => {
+    activeTheme.value = typeof sector === "string" ? sector : "전체";
+  },
+  { immediate: true }
+);
+
 onBeforeUnmount(() => {
   window.clearTimeout(searchTimer);
 });
@@ -521,13 +609,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .sidebar { width: 250px; flex-shrink: 0; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 18px 0 0; transition: width 0.25s ease; background: var(--cream); overflow: visible; position: relative; }
-.sidebar.resizing { transition: none; }
 .sidebar.collapsed { width: 68px; }
-.sidebar-resizer { position: absolute; top: 0; right: -5px; bottom: 0; z-index: 20; width: 10px; cursor: col-resize; touch-action: none; }
-.sidebar-resizer::before { content: ""; position: absolute; top: 0; bottom: 0; left: 4px; width: 2px; background: transparent; transition: background 0.15s ease; }
-.sidebar-resizer span { position: absolute; top: 50%; left: 2px; width: 6px; height: 44px; transform: translateY(-50%); border-radius: 4px; background: #cbd5e1; opacity: 0; transition: opacity 0.15s ease, background 0.15s ease; }
-.sidebar-resizer:hover::before, .sidebar.resizing .sidebar-resizer::before { background: var(--primary, #ff5a1f); }
-.sidebar-resizer:hover span, .sidebar.resizing .sidebar-resizer span { opacity: 1; background: var(--primary, #ff5a1f); }
 .toggle-btn { width: 34px; height: 34px; margin: 0 0 14px 16px; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 8px; color: var(--text2); transition: all 0.2s ease; }
 .toggle-btn:hover { background: var(--bg2); color: var(--text1); }
 .toggle-btn svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.8; fill: none; transition: transform 0.25s ease; }
@@ -616,7 +698,6 @@ onBeforeUnmount(() => {
 
 @media (max-width: 1180px) {
   .sidebar { width: 68px !important; }
-  .sidebar-resizer { display: none; }
   .sidebar .section-label,
   .sidebar .section-content,
   .sidebar .user-profile-meta,
