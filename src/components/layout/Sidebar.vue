@@ -155,6 +155,39 @@
         </template>
       </div>
 
+      <div v-else-if="activeSection === 'recommended'">
+        <div v-if="!currentUser" class="empty-state-box">
+          <p>관심 기업을 등록하면 맞춤 테마를 추천받을 수 있습니다.</p>
+        </div>
+
+        <div v-else-if="isRecommendedThemesLoading" class="compact-state">
+          추천 테마를 불러오는 중입니다...
+        </div>
+
+        <div v-else-if="recommendedThemesError" class="compact-state error-state-box">
+          {{ recommendedThemesError }}
+        </div>
+
+        <div v-else-if="recommendedThemes.length === 0" class="compact-state">
+          관심 기업을 등록하면 맞춤 테마를 추천받을 수 있습니다.
+        </div>
+
+        <div v-else class="sector-grid-layout">
+          <button
+            v-for="theme in recommendedThemes"
+            :key="theme.id"
+            type="button"
+            class="luxury-sector-chip"
+            :class="{
+              active: String(route.query.themeId) === String(theme.id)
+            }"
+            @click="selectRecommendedTheme(theme)"
+          >
+            {{ theme.name }}
+          </button>
+        </div>
+      </div>
+
       <div v-else-if="activeSection === 'sector'">
         <div class="search-input-container">
           <svg viewBox="0 0 24 24" class="search-lens"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
@@ -198,6 +231,7 @@ import {
   createInterestStock,
   deleteInterestStock,
   fetchInterestStocks,
+  fetchRecommendedThemes,
   fetchStocks,
 } from "../../services/api";
 
@@ -217,6 +251,9 @@ const stocksError = ref("");
 const mutationError = ref("");
 const addingStockId = ref(null);
 const deletingInterestId = ref(null);
+const recommendedThemes = ref([]);
+const isRecommendedThemesLoading = ref(false);
+const recommendedThemesError = ref("");
 let searchTimer = null;
 
 const displayStocks = computed(() => stocks.value);
@@ -236,6 +273,7 @@ const userInitial = computed(() => {
 
 const sections = [
   { key: "watchlist", label: "내 관심 기업", icon: '<polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />' },
+  { key: "recommended", label: "추천 테마", icon: '<path d="M12 3l1.8 4.4L18 9.2l-4.2 1.8L12 15.5 10.2 11 6 9.2l4.2-1.8L12 3z" /><path d="M18.5 15l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9.9-2.1z" />' },
   { key: "sector", label: "인기 테마", icon: '<rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" />' }
 ];
 
@@ -245,6 +283,9 @@ function selectSection(key) {
   if (key === "watchlist" && currentUser.value) {
     loadInterestStocks();
     loadStocks();
+  }
+  if (key === "recommended" && currentUser.value) {
+    loadRecommendedThemes();
   }
 }
 
@@ -270,12 +311,44 @@ async function loadInterestStocks() {
   }
 }
 
+async function loadRecommendedThemes() {
+  if (!currentUser.value) {
+    recommendedThemes.value = [];
+    recommendedThemesError.value = "";
+    return;
+  }
+
+  isRecommendedThemesLoading.value = true;
+  recommendedThemesError.value = "";
+
+  try {
+    const { data } = await fetchRecommendedThemes();
+    recommendedThemes.value = normalizeList(data);
+  } catch (error) {
+    console.error("추천 테마 조회 실패", error);
+    recommendedThemes.value = [];
+    recommendedThemesError.value = "추천 테마를 불러오지 못했습니다.";
+  } finally {
+    isRecommendedThemesLoading.value = false;
+  }
+}
+
 function selectInterestStock(interest) {
   router.push({
     path: "/",
     query: {
       stockId: interest.stock.id,
       stockName: interest.stock.stock_name,
+    },
+  });
+}
+
+async function selectRecommendedTheme(theme) {
+  await router.push({
+    path: "/",
+    query: {
+      themeId: String(theme.id),
+      themeName: theme.name,
     },
   });
 }
@@ -329,7 +402,7 @@ async function addInterestStock(stock) {
 
   try {
     await createInterestStock(stock.id);
-    await loadInterestStocks();
+    await Promise.all([loadInterestStocks(), loadRecommendedThemes()]);
   } catch (error) {
     console.error("관심 기업 등록 실패", error);
     mutationError.value =
@@ -353,7 +426,7 @@ async function removeInterestStock(interest) {
     if (String(route.query.stockId) === String(interest.stock.id)) {
       await router.push("/");
     }
-    await loadInterestStocks();
+    await Promise.all([loadInterestStocks(), loadRecommendedThemes()]);
   } catch (error) {
     console.error("관심 기업 삭제 실패", error);
     mutationError.value =
@@ -389,13 +462,19 @@ const filteredThemes = computed(() => {
 function handleThemeClick(theme) {
   activeTheme.value = theme;
   // 주소창에 ?sector=테마명 파라미터를 넘겨주어 NewsFeedView와 동기화
-  router.push({ path: '/', query: { ...route.query, sector: theme === '전체' ? undefined : theme } });
+  router.push({
+    path: "/",
+    query: {
+      sector: theme === "전체" ? undefined : theme,
+    },
+  });
 }
 
 onMounted(() => {
   if (currentUser.value) {
     loadInterestStocks();
     loadStocks();
+    loadRecommendedThemes();
   }
 });
 
@@ -406,9 +485,11 @@ watch(currentUser, (user) => {
   if (user) {
     loadInterestStocks();
     loadStocks();
+    loadRecommendedThemes();
   } else {
     interestStocks.value = [];
     stocks.value = [];
+    recommendedThemes.value = [];
   }
 });
 

@@ -72,6 +72,16 @@ export function fetchNewsByStock(stockId) {
   return api.get(`/news/stocks/${stockId}/`);
 }
 
+// GET /api/v1/stocks/interests/themes/ → 관심 기업 기반 추천 테마 조회
+export function fetchRecommendedThemes() {
+  return api.get("/stocks/interests/themes/");
+}
+
+// GET /api/v1/news/themes/:themeId/ → 테마별 뉴스 조회
+export function fetchNewsByTheme(themeId) {
+  return api.get(`/news/themes/${themeId}/`);
+}
+
 // GET /api/v1/accounts/watchlist/  → 내 관심종목
 export function fetchWatchlist() {
   // TODO: 팀원 API 연동 (accounts 앱 쪽)

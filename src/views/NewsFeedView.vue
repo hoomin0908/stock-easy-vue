@@ -3,8 +3,10 @@
     <aside class="list-side" :class="{ 'has-detail': route.params.id }">
       
       <div class="filter-bar">
-        <div v-if="route.query.stockId" class="selected-company-label">
-          <strong>{{ route.query.stockName || "선택 기업" }}</strong>
+        <div v-if="route.query.stockId || route.query.themeId" class="selected-company-label">
+          <strong>
+            {{ route.query.stockName || route.query.themeName || "선택 항목" }}
+          </strong>
           <span>관련 뉴스</span>
         </div>
 
@@ -83,7 +85,11 @@
 import { ref, watch, computed, inject } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import NewsCard from "../components/news/NewsCard.vue";
-import { fetchNewsFeed, fetchNewsByStock } from "../services/api";
+import {
+  fetchNewsFeed,
+  fetchNewsByStock,
+  fetchNewsByTheme,
+} from "../services/api";
 
 const route = useRoute();
 const router = useRouter();
@@ -120,14 +126,22 @@ const themeKeywords = {
 const loadNews = async () => {
   const requestId = ++latestNewsRequestId;
   const stockId = route.query.stockId;
+  const themeId = route.query.themeId;
 
   isNewsLoading.value = true;
   newsError.value = "";
 
   try {
-    const response = stockId
-      ? await fetchNewsByStock(stockId)
-      : await fetchNewsFeed();
+    let response;
+
+    if (stockId) {
+      response = await fetchNewsByStock(stockId);
+    } else if (themeId) {
+      console.log("테마 뉴스 조회", themeId);
+      response = await fetchNewsByTheme(themeId);
+    } else {
+      response = await fetchNewsFeed();
+    }
 
     if (requestId !== latestNewsRequestId) return;
 
@@ -141,7 +155,9 @@ const loadNews = async () => {
     newsList.value = [];
     newsError.value = stockId
       ? "관심 기업 뉴스를 불러오지 못했습니다."
-      : "뉴스를 불러오지 못했습니다.";
+      : themeId
+        ? "추천 테마 뉴스를 불러오지 못했습니다."
+        : "뉴스를 불러오지 못했습니다.";
   } finally {
     if (requestId === latestNewsRequestId) {
       isNewsLoading.value = false;
@@ -152,8 +168,8 @@ const loadNews = async () => {
 function handleFilterClick(value) {
   activeFilter.value = value;
 
-  if (value === "ALL" && route.query.stockId) {
-    router.push("/");
+  if (value === "ALL" && (route.query.stockId || route.query.themeId)) {
+    router.push({ path: "/", query: {} });
   }
 }
 
@@ -226,7 +242,10 @@ const displayNewsList = computed(() => {
 });
 
 watch(
-  () => route.query.stockId,
+  [
+    () => route.query.stockId,
+    () => route.query.themeId,
+  ],
   () => {
     selectedStockFilter.value = null;
     loadNews();
@@ -237,7 +256,11 @@ watch(
 watch(
   () => route.query.sector,
   (sector, previousSector) => {
-    if (sector !== previousSector && !route.query.stockId) {
+    if (
+      sector !== previousSector &&
+      !route.query.stockId &&
+      !route.query.themeId
+    ) {
       loadNews();
     }
   }
