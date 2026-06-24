@@ -150,7 +150,7 @@ onMounted(loadComponentData);
 .video-info { padding: 14px; text-align: left; background: var(--cream); }
 .video-title {
   font-size: 13.5px; font-weight: 800; color: var(--text1); line-height: 1.4; margin: 0 0 8px 0;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .channel-title { font-size: 12px; color: var(--text3); }
 
