@@ -83,22 +83,20 @@
                   <span>{{ getTermName(tm) }}</span>
                   <span class="term-toggle-icon" aria-hidden="true">+</span>
                 </summary>
+                <button
+                  type="button"
+                  class="term-save-btn"
+                  :class="{ saved: isTermSaved(tm) }"
+                  :disabled="isTermSaving(tm)"
+                  :title="isTermSaved(tm) ? '용어 저장 취소' : '용어 저장'"
+                  :aria-label="isTermSaved(tm) ? '용어 저장 취소' : '용어 저장'"
+                  @click.stop="handleToggleSavedTerm(tm)"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M6 4.75A1.75 1.75 0 0 1 7.75 3h8.5A1.75 1.75 0 0 1 18 4.75V21l-6-3.75L6 21V4.75Z" />
+                  </svg>
+                </button>
                 <div class="term-explanation-box">
-                  <button
-                    type="button"
-                    class="term-save-btn"
-                    :class="{ saved: isTermSaved(tm) }"
-                    :disabled="isTermSaved(tm) || isTermSaving(tm)"
-                    @click.stop="handleSaveTerm(tm)"
-                  >
-                    {{
-                      isTermSaving(tm)
-                        ? "저장 중..."
-                        : isTermSaved(tm)
-                          ? "★ 저장됨"
-                          : "☆ 저장"
-                    }}
-                  </button>
                   <p class="term-explanation-txt">{{ getTermExplanation(tm) }}</p>
                   <p v-if="getTermSaveError(tm)" class="term-save-error">
                     {{ getTermSaveError(tm) }}
@@ -433,6 +431,7 @@ import {
   deleteComment,
   fetchSavedTerms,
   saveTerm,
+  deleteSavedTerm,
 } from "../services/api";
 import { useAuth } from "../services/auth";
 
@@ -666,11 +665,15 @@ function normalizeSavedTerms(data) {
 }
 
 function isTermSaved(term) {
+  return Boolean(getSavedTerm(term));
+}
+
+function getSavedTerm(term) {
   const termName = normalizeTermName(term);
-  return Boolean(
-    termName &&
-    savedTerms.value.some((savedTerm) => normalizeTermName(savedTerm) === termName)
-  );
+  if (!termName) return null;
+  return savedTerms.value.find(
+    (savedTerm) => normalizeTermName(savedTerm) === termName
+  ) || null;
 }
 
 function isTermSaving(term) {
@@ -691,12 +694,13 @@ async function loadSavedTerms() {
   }
 }
 
-async function handleSaveTerm(term) {
+async function handleToggleSavedTerm(term) {
   const termName = getTermName(term).trim();
   const explanation = getTermExplanation(term).trim();
   const normalizedName = normalizeTermName(term);
+  const savedTerm = getSavedTerm(term);
 
-  if (!termName || !normalizedName || isTermSaved(term) || isTermSaving(term)) return;
+  if (!termName || !normalizedName || isTermSaving(term)) return;
 
   savingTermNames.value = new Set(savingTermNames.value).add(normalizedName);
   termSaveErrors.value = {
@@ -705,13 +709,20 @@ async function handleSaveTerm(term) {
   };
 
   try {
-    const { data } = await saveTerm(termName, explanation);
-    savedTerms.value = [...savedTerms.value, data];
+    if (savedTerm) {
+      await deleteSavedTerm(savedTerm.id);
+      savedTerms.value = savedTerms.value.filter((item) => item.id !== savedTerm.id);
+    } else {
+      const { data } = await saveTerm(termName, explanation);
+      savedTerms.value = [...savedTerms.value, data];
+    }
   } catch (error) {
-    console.error("용어 저장 실패", error);
+    console.error(savedTerm ? "용어 저장 취소 실패" : "용어 저장 실패", error);
     termSaveErrors.value = {
       ...termSaveErrors.value,
-      [normalizedName]: "용어 저장에 실패했습니다.",
+      [normalizedName]: savedTerm
+        ? "용어 저장 취소에 실패했습니다."
+        : "용어 저장에 실패했습니다.",
     };
   } finally {
     const nextSavingTermNames = new Set(savingTermNames.value);
@@ -955,20 +966,24 @@ const targetCompanyName = computed(() => {
 .hl-reason { font-size: 12.5px; line-height: 1.5; color: var(--text3); margin: 6px 0 0; }
 .highlight-empty-state { padding: 40px 20px; border: 1px dashed var(--border); border-radius: 12px; color: var(--text3); font-size: 13px; text-align: center; background: var(--cream-soft); }
 .terms-pill-grid { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; }
-.term-detail-card { min-width: 120px; max-width: 100%; background: var(--cream); border-radius: 10px; border: 1px solid var(--border); overflow: hidden; transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease; }
+.term-detail-card { position: relative; min-width: 120px; max-width: 100%; background: var(--cream); border-radius: 10px; border: 1px solid var(--border); overflow: hidden; transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease; }
 .term-detail-card:hover { background: #fff7ed; border-color: #dfc49e; box-shadow: 0 4px 14px rgba(184, 112, 63, 0.08); }
 .term-detail-card[open] { background: var(--ai-bg); border-color: var(--ai-border); box-shadow: 0 4px 14px rgba(184, 112, 63, 0.08); }
 .term-detail-card[open] { flex-basis: 100%; }
-.term-badge-name { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 13px; color: var(--primary); font-size: 12.5px; font-weight: 800; cursor: pointer; list-style: none; user-select: none; }
+.term-badge-name { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 36px 10px 13px; color: var(--primary); font-size: 12.5px; font-weight: 800; cursor: pointer; list-style: none; user-select: none; }
+.term-detail-card[open] .term-badge-name { padding-right: 76px; }
 .term-badge-name::-webkit-details-marker { display: none; }
-.term-toggle-icon { color: var(--ai, #b8703f); font-size: 16px; line-height: 1; transition: transform 0.15s ease; }
-.term-detail-card[open] .term-toggle-icon { transform: rotate(45deg); }
-.term-explanation-box { position: relative; padding: 4px 13px 13px; }
-.term-explanation-txt { padding: 0 76px 0 0; font-size: 13px; color: var(--text2); margin: 0; line-height: 1.65; }
-.term-save-btn { position: absolute; top: 0; right: 13px; min-width: 64px; padding: 5px 8px; border: 1px solid var(--primary-border); border-radius: 7px; background: var(--primary-bg); color: var(--primary); font-size: 10.5px; font-weight: 800; cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
+.term-toggle-icon { position: absolute; top: 50%; right: 13px; color: var(--ai, #b8703f); font-size: 16px; line-height: 1; transform: translateY(-50%); transition: transform 0.15s ease; }
+.term-detail-card[open] .term-toggle-icon { transform: translateY(-50%) rotate(45deg); }
+.term-explanation-box { padding: 4px 13px 13px; }
+.term-explanation-txt { padding: 0; font-size: 13px; color: var(--text2); margin: 0; line-height: 1.65; }
+.term-save-btn { display: none; position: absolute; top: 5px; right: 39px; z-index: 1; width: 30px; height: 30px; align-items: center; justify-content: center; padding: 0; border: 1px solid var(--primary-border); border-radius: 7px; background: var(--cream); color: var(--primary); cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
+.term-detail-card[open] .term-save-btn { display: inline-flex; }
+.term-save-btn svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
 .term-save-btn:hover:not(:disabled) { border-color: var(--primary); background: var(--primary); color: #ffffff; }
 .term-save-btn.saved { border-color: var(--primary); background: var(--primary); color: #ffffff; }
-.term-save-btn:disabled { cursor: default; opacity: 0.72; }
+.term-save-btn.saved svg { fill: currentColor; }
+.term-save-btn:disabled { cursor: default; opacity: 0.5; }
 .term-save-error { margin: 8px 0 0; color: #dc2626; font-size: 10.5px; line-height: 1.4; }
 .checkpoint-list { padding: 15px 15px 15px 34px; color: var(--text1); font-size: 13.5px; line-height: 1.75; margin: 0; background: var(--cream); border: 1px solid var(--border); border-radius: 12px; }
 .checkpoint-list li { margin-bottom: 6px; list-style-type: square; }

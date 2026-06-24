@@ -57,9 +57,20 @@ const errorMessage = ref("");
 const deletingIds = ref(new Set());
 
 function normalizeList(data) {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.results)) return data.results;
-  return [];
+  const list = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.results)
+      ? data.results
+      : [];
+
+  return [...list].sort((a, b) => {
+    const aTime = new Date(a?.created_at).getTime();
+    const bTime = new Date(b?.created_at).getTime();
+
+    if (Number.isNaN(aTime)) return Number.isNaN(bTime) ? 0 : 1;
+    if (Number.isNaN(bTime)) return -1;
+    return aTime - bTime;
+  });
 }
 
 async function loadSavedTerms() {
