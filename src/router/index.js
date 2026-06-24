@@ -31,6 +31,18 @@ const routes = [
     name: "saved",
     component: () => import("../views/SavedView.vue"),
   },
+  {
+    path: "/login",
+    name: "login",
+    component: () => import("../views/LoginView.vue"),
+    meta: { authPage: true },
+  },
+  {
+    path: "/signup",
+    name: "signup",
+    component: () => import("../views/SignupView.vue"),
+    meta: { authPage: true },
+  },
 ];
 
 export default createRouter({

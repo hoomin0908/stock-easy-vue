@@ -15,16 +15,62 @@
     </div>
 
     <div class="nav-right">
-      <div class="icon-btn" title="검색 (TODO: 검색 기능)">
+      <div v-if="isAuthenticated" class="icon-btn" title="검색 (TODO: 검색 기능)">
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
       </div>
-      <div class="icon-btn" title="알림 (TODO: 알림 기능)">
+      <div v-if="isAuthenticated" class="icon-btn" title="알림 (TODO: 알림 기능)">
         <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
       </div>
-      <div class="avatar">유저</div>
+
+      <template v-if="isAuthenticated">
+        <div class="avatar">{{ displayName }}</div>
+        <button class="logout-btn" :disabled="isLoggingOut" @click="handleLogout">
+          {{ isLoggingOut ? "로그아웃 중" : "로그아웃" }}
+        </button>
+      </template>
+
+      <template v-else>
+        <router-link class="auth-link" :to="loginLink">로그인</router-link>
+        <router-link class="signup-link" to="/signup">회원가입</router-link>
+      </template>
     </div>
   </nav>
 </template>
+
+<script setup>
+import { computed, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { useAuth } from "../../services/auth";
+
+const route = useRoute();
+const router = useRouter();
+const { currentUser, isAuthenticated, logout } = useAuth();
+const isLoggingOut = ref(false);
+
+const displayName = computed(
+  () => currentUser.value?.nickname || currentUser.value?.email || "사용자"
+);
+
+const loginLink = computed(() => ({
+  path: "/login",
+  query: route.meta.authPage ? {} : { redirect: route.fullPath },
+}));
+
+async function handleLogout() {
+  if (isLoggingOut.value) return;
+
+  isLoggingOut.value = true;
+  try {
+    await logout();
+    await router.push("/");
+  } catch (error) {
+    console.error("로그아웃 실패", error);
+    window.alert("로그아웃하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+  } finally {
+    isLoggingOut.value = false;
+  }
+}
+</script>
 
 <style scoped>
 .top-nav {
@@ -109,4 +155,24 @@
   font-size: 12px;
   font-weight: 600;
 }
+.auth-link, .logout-btn {
+  border: 1px solid var(--border);
+  background: #ffffff;
+  color: var(--text2);
+  padding: 8px 13px;
+  border-radius: var(--radius);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.auth-link:hover, .logout-btn:hover { border-color: var(--primary-border); color: var(--primary); }
+.signup-link {
+  background: var(--primary);
+  color: #ffffff;
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.signup-link:hover { background: var(--primary-hover); }
+.logout-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 </style>

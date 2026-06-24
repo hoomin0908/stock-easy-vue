@@ -2,7 +2,7 @@
   <div class="app">
     <TopNav />
     <div class="body">
-      <Sidebar />
+      <Sidebar v-if="!route.meta.authPage" />
       <main class="main">
         <router-view />
       </main>
@@ -12,8 +12,11 @@
 
 <script setup>
 import { ref, provide } from "vue";
+import { useRoute } from "vue-router";
 import TopNav from "./components/layout/TopNav.vue";
 import Sidebar from "./components/layout/Sidebar.vue";
+
+const route = useRoute();
 
 // 1. 상태 정의
 const watchlistItems = ref([]); // 관심 종목 리스트
