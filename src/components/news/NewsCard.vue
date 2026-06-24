@@ -114,10 +114,34 @@ const calculatedSentiment = computed(() => {
 
 // 💡 2. 라우터 라벨 네임 버그를 차단하기 위해 직관적인 주소창 경로(path) 직접 매핑 방식으로 대폭 고도화
 function goToDetail() {
+  saveRecentNews();
   router.push({ 
     path: `/news/${props.news.id}`, 
     query: route.query 
   });
+}
+
+function saveRecentNews() {
+  const storageKey = "stockeasy-recent-news";
+  const currentNews = {
+    id: props.news.id,
+    title: props.news.title,
+    publisher: props.news.publisher,
+    viewedAt: new Date().toISOString(),
+  };
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(storageKey) || "[]");
+    const list = Array.isArray(saved) ? saved : [];
+    const nextList = [
+      currentNews,
+      ...list.filter(item => String(item.id) !== String(currentNews.id)),
+    ].slice(0, 10);
+
+    localStorage.setItem(storageKey, JSON.stringify(nextList));
+  } catch (error) {
+    console.error("최근 본 뉴스 저장 실패", error);
+  }
 }
 
 const formattedTime = computed(() => {
