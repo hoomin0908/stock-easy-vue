@@ -52,6 +52,16 @@ export function fetchStocks(params = {}) {
   return api.get("/stocks/", { params });
 }
 
+// GET /api/v1/stocks/interests/ → 내 관심 기업 조회
+export function fetchInterestStocks() {
+  return api.get("/stocks/interests/");
+}
+
+// GET /api/v1/news/stocks/:stockId/ → 관심 기업별 뉴스 조회
+export function fetchNewsByStock(stockId) {
+  return api.get(`/news/stocks/${stockId}/`);
+}
+
 // GET /api/v1/accounts/watchlist/  → 내 관심종목
 export function fetchWatchlist() {
   // TODO: 팀원 API 연동 (accounts 앱 쪽)

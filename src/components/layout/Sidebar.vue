@@ -25,36 +25,47 @@
     <div v-if="isOpen" class="section-content">
       
       <div v-if="activeSection === 'watchlist'">
-        <div v-if="selectedStockFilter" class="filter-notice-bar">
-          <span class="notice-txt">🎯 '{{ selectedStockFilter }}' 필터 중</span>
-          <button class="clear-filter-btn" @click="selectedStockFilter = null">✕</button>
+        <div v-if="!currentUser" class="empty-state-box">
+          <p>로그인 후 관심 기업을 등록할 수 있습니다.</p>
         </div>
 
-        <div v-if="watchlistItems.length === 0" class="empty-state-box">
+        <div v-else-if="isInterestsLoading" class="empty-state-box">
+          <p>관심 기업을 불러오는 중입니다...</p>
+        </div>
+
+        <div v-else-if="interestsError" class="empty-state-box error-state-box">
+          <p>{{ interestsError }}</p>
+        </div>
+
+        <div v-else-if="interestStocks.length === 0" class="empty-state-box">
           <svg viewBox="0 0 24 24" class="empty-icon"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" /></svg>
-          <p>아직 등록한 관심 종목이 없어요</p>
+          <p>아직 등록한 관심 기업이 없습니다.</p>
         </div>
 
-        <div class="stock-list-wrapper">
-          <div 
-            v-for="stock in watchlistItems" 
-            :key="stock.id" 
+        <div v-else class="stock-list-wrapper">
+          <button
+            v-for="interest in interestStocks"
+            :key="interest.id"
+            type="button"
             class="stock-item-card"
-            :class="{ 'filter-active': selectedStockFilter === stock.name }"
-            @click="toggleStockFilter(stock.name)"
+            :class="{
+              'filter-active':
+                String(route.query.stockId) === String(interest.stock.id)
+            }"
+            @click="selectInterestStock(interest)"
           >
-            <div class="stock-avatar-badge">{{ stock.shortName }}</div>
-            <div class="stock-meta-info">
-              <div class="stock-title-name">{{ stock.name }}</div>
-              <div class="stock-price-tag">{{ stock.price }}</div>
+            <div class="stock-avatar-badge">
+              {{ interest.stock.stock_name.slice(0, 2) }}
             </div>
-            <div class="active-indicator-dot" v-if="selectedStockFilter === stock.name"></div>
-          </div>
-        </div>
-
-        <div class="add-btn">
-          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-          종목 추가
+            <div class="stock-meta-info">
+              <div class="stock-title-name">{{ interest.stock.stock_name }}</div>
+              <div class="stock-price-tag">{{ interest.stock.stock_code }}</div>
+            </div>
+            <div
+              v-if="String(route.query.stockId) === String(interest.stock.id)"
+              class="active-indicator-dot"
+            ></div>
+          </button>
         </div>
       </div>
 
@@ -102,9 +113,10 @@
 </template>
 
 <script setup>
-import { ref, computed, inject } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuth } from "../../services/auth";
+import { fetchInterestStocks } from "../../services/api";
 
 const route = useRoute();
 const router = useRouter();
@@ -112,6 +124,9 @@ const isOpen = ref(true);
 const activeSection = ref("watchlist");
 const themeSearch = ref("");
 const { currentUser, isAuthenticated } = useAuth();
+const interestStocks = ref([]);
+const isInterestsLoading = ref(false);
+const interestsError = ref("");
 
 const userDisplayName = computed(() => {
   if (!isAuthenticated.value) return "로그인이 필요합니다";
@@ -123,13 +138,8 @@ const userInitial = computed(() => {
   return userDisplayName.value.slice(0, 2);
 });
 
-// 부모(App.vue) 전역 Provide 데이터 인젝션
-const watchlistItems = inject("watchlistItems", ref([]));
-const selectedStockFilter = inject("selectedStockFilter", ref(null));
-const toggleStockFilter = inject("toggleStockFilter");
-
 const sections = [
-  { key: "watchlist", label: "관심 종목", icon: '<polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />' },
+  { key: "watchlist", label: "내 관심 기업", icon: '<polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />' },
   { key: "sector", label: "인기 테마", icon: '<rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" />' },
   { key: "terms", label: "저장된 용어", icon: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />' }
 ];
@@ -137,6 +147,38 @@ const sections = [
 function selectSection(key) {
   activeSection.value = key;
   if (!isOpen.value) isOpen.value = true;
+}
+
+async function loadInterestStocks() {
+  if (!currentUser.value) {
+    interestStocks.value = [];
+    interestsError.value = "";
+    return;
+  }
+
+  isInterestsLoading.value = true;
+  interestsError.value = "";
+
+  try {
+    const { data } = await fetchInterestStocks();
+    interestStocks.value = Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.error("관심 기업 조회 실패", error);
+    interestStocks.value = [];
+    interestsError.value = "관심 기업을 불러오지 못했습니다.";
+  } finally {
+    isInterestsLoading.value = false;
+  }
+}
+
+function selectInterestStock(interest) {
+  router.push({
+    path: "/",
+    query: {
+      stockId: interest.stock.id,
+      stockName: interest.stock.stock_name,
+    },
+  });
 }
 
 // 💡 10대 인기 테마 하드코딩 리스트 구성 완료
@@ -168,6 +210,9 @@ function handleThemeClick(theme) {
 }
 
 const savedTerms = ref([]);
+
+onMounted(loadInterestStocks);
+watch(currentUser, loadInterestStocks);
 </script>
 
 <style scoped>
@@ -190,7 +235,7 @@ const savedTerms = ref([]);
 .empty-state-box { padding: 24px 0; text-align: center; color: var(--text3); }
 .empty-icon { width: 22px; height: 24px; stroke: var(--text3); stroke-width: 1.5; fill: none; margin-bottom: 6px; }
 .stock-list-wrapper { display: flex; flex-direction: column; gap: 6px; }
-.stock-item-card { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: var(--radius); border: 1px solid transparent; cursor: pointer; position: relative; transition: all 0.2s ease; background: var(--bg2); }
+.stock-item-card { width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: var(--radius); border: 1px solid transparent; cursor: pointer; position: relative; transition: all 0.2s ease; background: var(--bg2); font: inherit; }
 .stock-item-card:hover { background: #ffffff; border-color: var(--border); transform: translateX(2px); }
 .stock-item-card.filter-active { background: var(--primary-bg); border-color: var(--primary-border); }
 .stock-avatar-badge { width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0; background: #ffffff; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--text2); }
@@ -198,6 +243,7 @@ const savedTerms = ref([]);
 .stock-title-name { font-size: 13px; font-weight: 600; color: var(--text1); }
 .stock-price-tag { font-size: 11px; color: var(--text3); margin-top: 2px; }
 .active-indicator-dot { width: 6px; height: 6px; background: var(--primary); border-radius: 50%; position: absolute; right: 12px; top: calc(50% - 3px); }
+.error-state-box { color: #dc2626; background: #fff1f2; border-radius: var(--radius); }
 .add-btn { display: flex; align-items: center; gap: 6px; padding: 10px; font-size: 12.5px; color: var(--text3); border: 1px dashed var(--border); border-radius: var(--radius); margin-top: 12px; cursor: pointer; justify-content: center; transition: all 0.15s ease; background: #fff; }
 .add-btn:hover { border-color: var(--primary-border); color: var(--primary); background: var(--primary-bg); }
 .word-pills { display: flex; flex-wrap: wrap; gap: 6px; }
