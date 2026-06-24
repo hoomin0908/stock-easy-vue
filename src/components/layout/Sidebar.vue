@@ -22,9 +22,13 @@
       </button>
     </nav>
 
-    <div v-if="isOpen" class="section-content">
+    <div
+      v-if="isOpen"
+      class="section-content"
+      :class="{ 'watchlist-content': activeSection === 'watchlist' }"
+    >
       
-      <div v-if="activeSection === 'watchlist'">
+      <div v-if="activeSection === 'watchlist'" class="interest-panel">
         <div v-if="!currentUser" class="empty-state-box">
           <p>로그인 후 관심 기업을 등록할 수 있습니다.</p>
         </div>
@@ -33,15 +37,6 @@
           <section class="interest-group">
             <div class="interest-heading">
               <h3>등록한 관심 기업</h3>
-              <button
-                type="button"
-                class="refresh-btn"
-                :disabled="isInterestsLoading"
-                title="새로고침"
-                @click="loadInterestStocks"
-              >
-                ↻
-              </button>
             </div>
 
             <div v-if="isInterestsLoading" class="compact-state">
@@ -71,9 +66,6 @@
                   class="interest-main-btn"
                   @click="selectInterestStock(interest)"
                 >
-                  <span class="stock-avatar-badge">
-                    {{ interest.stock.stock_name.slice(0, 2) }}
-                  </span>
                   <span class="stock-meta-info">
                     <strong class="stock-title-name">{{ interest.stock.stock_name }}</strong>
                     <small class="stock-price-tag">{{ interest.stock.stock_code }}</small>
@@ -96,7 +88,6 @@
           <section class="interest-group company-search-group">
             <div class="interest-heading">
               <h3>기업 찾기</h3>
-              <span class="result-count">최대 20개</span>
             </div>
 
             <div class="company-search-box">
@@ -228,7 +219,7 @@ const addingStockId = ref(null);
 const deletingInterestId = ref(null);
 let searchTimer = null;
 
-const displayStocks = computed(() => stocks.value.slice(0, 20));
+const displayStocks = computed(() => stocks.value);
 const registeredStockIds = computed(
   () => new Set(interestStocks.value.map((interest) => interest.stock.id))
 );
@@ -448,27 +439,24 @@ onBeforeUnmount(() => {
 .section-btn svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.8; fill: none; flex-shrink: 0; }
 .section-label { overflow: hidden; text-overflow: ellipsis; }
 .section-content { flex: 1; overflow-y: auto; padding: 16px 16px 0; margin-top: 4px; border-top: 1px solid var(--border); display: flex; flex-direction: column; }
+.section-content.watchlist-content { overflow: hidden; padding-bottom: 0; }
 .section-content::-webkit-scrollbar { width: 4px; }
 .section-content::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
 .filter-notice-bar { display: flex; justify-content: space-between; align-items: center; background: var(--primary-bg); color: var(--primary); border: 1px solid var(--primary-border); font-size: 11.5px; padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; font-weight: 600; }
 .clear-filter-btn { border: none; background: transparent; color: var(--primary); cursor: pointer; font-size: 12px; }
 .empty-state-box { padding: 24px 0; text-align: center; color: var(--text3); }
 .empty-icon { width: 22px; height: 24px; stroke: var(--text3); stroke-width: 1.5; fill: none; margin-bottom: 6px; }
-.interest-group { margin-bottom: 20px; }
+.interest-panel { height: 100%; min-height: 0; display: flex; flex-direction: column; }
+.interest-group { flex-shrink: 0; margin-bottom: 20px; }
 .interest-group + .interest-group { padding-top: 16px; border-top: 1px solid var(--border); }
 .interest-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .interest-heading h3 { color: var(--text1); font-size: 12.5px; font-weight: 700; }
-.refresh-btn { width: 25px; height: 25px; border: 1px solid var(--border); border-radius: 6px; background: #fff; color: var(--text3); cursor: pointer; }
-.refresh-btn:hover { color: var(--primary); border-color: var(--primary-border); }
-.refresh-btn:disabled { opacity: 0.45; cursor: wait; }
-.result-count { color: var(--text3); font-size: 10px; }
 .compact-state { padding: 16px 10px; border-radius: var(--radius); background: var(--bg2); color: var(--text3); font-size: 11px; line-height: 1.5; text-align: center; }
 .stock-list-wrapper { display: flex; flex-direction: column; gap: 6px; }
 .interest-row { display: flex; align-items: center; border: 1px solid transparent; border-radius: var(--radius); background: var(--bg2); transition: all 0.2s ease; }
 .interest-row:hover { background: #fff; border-color: var(--border); transform: translateX(2px); }
 .interest-row.filter-active { background: var(--primary-bg); border-color: var(--primary-border); }
 .interest-main-btn { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 9px; border: none; background: transparent; cursor: pointer; font: inherit; }
-.stock-avatar-badge { width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0; background: #ffffff; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--text2); }
 .stock-meta-info { flex: 1; min-width: 0; display: flex; flex-direction: column; text-align: left; }
 .stock-title-name { font-size: 13px; font-weight: 600; color: var(--text1); }
 .stock-price-tag { font-size: 11px; color: var(--text3); margin-top: 2px; }
@@ -480,7 +468,7 @@ onBeforeUnmount(() => {
 .company-search-box svg { position: absolute; left: 10px; width: 14px; height: 14px; stroke: var(--text3); stroke-width: 2; fill: none; pointer-events: none; }
 .company-search-box input { width: 100%; padding: 8px 10px 8px 31px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg2); outline: none; font-size: 11.5px; }
 .company-search-box input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(255, 90, 31, 0.08); }
-.company-search-results { display: flex; flex-direction: column; gap: 5px; max-height: 280px; overflow-y: auto; }
+.company-search-results { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 5px; overflow-y: auto; padding-right: 2px; }
 .company-result-row { display: flex; align-items: center; gap: 8px; padding: 8px 9px; border: 1px solid var(--border); border-radius: var(--radius); background: #fff; }
 .company-result-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .company-result-info strong { overflow: hidden; color: var(--text1); font-size: 11.5px; text-overflow: ellipsis; white-space: nowrap; }
@@ -490,6 +478,9 @@ onBeforeUnmount(() => {
 .registration-btn:disabled { cursor: not-allowed; }
 .registration-btn.registered { border-color: var(--border); background: var(--bg3); color: var(--text3); }
 .mutation-error { margin: 0 0 9px; padding: 8px 9px; border-radius: 6px; background: #fff1f2; color: #dc2626; font-size: 10.5px; line-height: 1.4; }
+.company-search-group { flex: 1; min-height: 0; margin-bottom: 0; display: flex; flex-direction: column; }
+.company-search-results::-webkit-scrollbar { width: 4px; }
+.company-search-results::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
 .add-btn { display: flex; align-items: center; gap: 6px; padding: 10px; font-size: 12.5px; color: var(--text3); border: 1px dashed var(--border); border-radius: var(--radius); margin-top: 12px; cursor: pointer; justify-content: center; transition: all 0.15s ease; background: #fff; }
 .add-btn:hover { border-color: var(--primary-border); color: var(--primary); background: var(--primary-bg); }
 .word-pills { display: flex; flex-wrap: wrap; gap: 6px; }
