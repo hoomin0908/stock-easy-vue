@@ -713,7 +713,8 @@ async function handleToggleSavedTerm(term) {
       await deleteSavedTerm(savedTerm.id);
       savedTerms.value = savedTerms.value.filter((item) => item.id !== savedTerm.id);
     } else {
-      const { data } = await saveTerm(termName, explanation);
+      const newsId = news.value?.id ?? route.params.id ?? null;
+      const { data } = await saveTerm(termName, explanation, newsId);
       savedTerms.value = [...savedTerms.value, data];
     }
   } catch (error) {

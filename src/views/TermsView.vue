@@ -30,16 +30,30 @@
             <div class="term-copy">
               <h2>{{ item.term?.name || "이름 없는 용어" }}</h2>
               <p>{{ item.term?.description || "설명 정보가 없습니다." }}</p>
+              <p v-if="item.news?.id" class="source-news" :title="item.news.title">
+                출처 뉴스: {{ item.news.title || "제목 정보 없음" }}
+              </p>
             </div>
-            <button
-              type="button"
-              class="delete-btn"
-              :disabled="deletingIds.has(item.id)"
-              :aria-label="`${item.term?.name || '용어'} 삭제`"
-              @click="handleDelete(item.id)"
-            >
-              {{ deletingIds.has(item.id) ? "삭제 중" : "삭제" }}
-            </button>
+            <div class="term-actions">
+              <button
+                v-if="item.news?.id"
+                type="button"
+                class="news-btn"
+                :aria-label="`${item.news.title || '연결된'} 뉴스 보기`"
+                @click="goToNews(item.news.id)"
+              >
+                뉴스 보기
+              </button>
+              <button
+                type="button"
+                class="delete-btn"
+                :disabled="deletingIds.has(item.id)"
+                :aria-label="`${item.term?.name || '용어'} 삭제`"
+                @click="handleDelete(item.id)"
+              >
+                {{ deletingIds.has(item.id) ? "삭제 중" : "삭제" }}
+              </button>
+            </div>
           </article>
         </div>
       </section>
@@ -49,8 +63,10 @@
 
 <script setup>
 import { onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 import { deleteSavedTerm, fetchSavedTerms } from "../services/api";
 
+const router = useRouter();
 const savedTerms = ref([]);
 const isLoading = ref(false);
 const errorMessage = ref("");
@@ -87,6 +103,11 @@ async function loadSavedTerms() {
   } finally {
     isLoading.value = false;
   }
+}
+
+function goToNews(newsId) {
+  if (!newsId) return;
+  router.push({ path: `/news/${newsId}` });
 }
 
 async function handleDelete(userTermId) {
@@ -213,6 +234,7 @@ onMounted(loadSavedTerms);
   padding: 16px;
 }
 .term-copy {
+  flex: 1;
   min-width: 0;
 }
 .term-copy h2 {
@@ -227,15 +249,52 @@ onMounted(loadSavedTerms);
   line-height: 1.65;
   margin-top: 6px;
 }
-.delete-btn {
+.term-copy .source-news {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--text2);
+  font-size: 11.5px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.term-actions {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.news-btn,
+.delete-btn {
   padding: 8px 12px;
 }
-.retry-btn:hover,
-.delete-btn:hover:not(:disabled) {
+.news-btn {
+  border: 1px solid var(--primary-border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.news-btn:hover {
+  border-color: var(--primary);
+  background: var(--primary-bg);
+}
+.retry-btn:hover {
   border-color: var(--primary);
   background: var(--primary);
   color: #fff;
+}
+.delete-btn:hover:not(:disabled) {
+  border-color: #dc2626;
+  background: #dc2626;
+  color: #fff;
+}
+.delete-btn {
+  border-color: #fecaca;
+  background: #fff7f7;
+  color: #dc2626;
 }
 .delete-btn:disabled {
   cursor: wait;
@@ -258,7 +317,7 @@ onMounted(loadSavedTerms);
   .term-card {
     flex-direction: column;
   }
-  .delete-btn {
+  .term-actions {
     align-self: flex-end;
   }
 }

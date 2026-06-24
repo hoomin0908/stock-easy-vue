@@ -94,10 +94,11 @@ export function fetchSavedTerms() {
 }
 
 // POST /api/v1/terms/my/ → 저장 용어 등록
-export function saveTerm(term, explanation) {
+export function saveTerm(term, explanation, newsId) {
   return api.post("/terms/my/", {
     term,
     explanation,
+    news_id: newsId ?? null,
   });
 }
 
