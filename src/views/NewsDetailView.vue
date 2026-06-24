@@ -80,10 +80,30 @@
                 class="term-detail-card"
               >
                 <summary class="term-badge-name">
-                  <span>{{ tm.term }}</span>
+                  <span>{{ getTermName(tm) }}</span>
                   <span class="term-toggle-icon" aria-hidden="true">+</span>
                 </summary>
-                <p class="term-explanation-txt">{{ tm.explanation }}</p>
+                <div class="term-explanation-box">
+                  <button
+                    type="button"
+                    class="term-save-btn"
+                    :class="{ saved: isTermSaved(tm) }"
+                    :disabled="isTermSaved(tm) || isTermSaving(tm)"
+                    @click.stop="handleSaveTerm(tm)"
+                  >
+                    {{
+                      isTermSaving(tm)
+                        ? "저장 중..."
+                        : isTermSaved(tm)
+                          ? "★ 저장됨"
+                          : "☆ 저장"
+                    }}
+                  </button>
+                  <p class="term-explanation-txt">{{ getTermExplanation(tm) }}</p>
+                  <p v-if="getTermSaveError(tm)" class="term-save-error">
+                    {{ getTermSaveError(tm) }}
+                  </p>
+                </div>
               </details>
             </div>
           </section>
@@ -411,6 +431,8 @@ import {
   createComment,
   updateComment,
   deleteComment,
+  fetchSavedTerms,
+  saveTerm,
 } from "../services/api";
 import { useAuth } from "../services/auth";
 
@@ -433,6 +455,9 @@ const commentLoadError = ref("");
 const commentMutationError = ref("");
 const showAiReport = ref(false);
 const openCommentMenuId = ref(null);
+const savedTerms = ref([]);
+const savingTermNames = ref(new Set());
+const termSaveErrors = ref({});
 
 const toggleWatchlist = inject("toggleWatchlist");
 const isWatched = inject("isWatched");
@@ -615,6 +640,86 @@ function handleReportKeydown(event) {
   if (event.key === "Escape" && showAiReport.value) closeAiReport();
 }
 
+function getTermName(term) {
+  if (typeof term?.term === "string") return term.term;
+  return term?.term?.name || term?.name || term?.title || "";
+}
+
+function getTermExplanation(term) {
+  return (
+    term?.explanation ||
+    term?.description ||
+    term?.term?.description ||
+    term?.meaning ||
+    ""
+  );
+}
+
+function normalizeTermName(term) {
+  return getTermName(term).trim().toLocaleLowerCase("ko-KR");
+}
+
+function normalizeSavedTerms(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.results)) return data.results;
+  return [];
+}
+
+function isTermSaved(term) {
+  const termName = normalizeTermName(term);
+  return Boolean(
+    termName &&
+    savedTerms.value.some((savedTerm) => normalizeTermName(savedTerm) === termName)
+  );
+}
+
+function isTermSaving(term) {
+  return savingTermNames.value.has(normalizeTermName(term));
+}
+
+function getTermSaveError(term) {
+  return termSaveErrors.value[normalizeTermName(term)] || "";
+}
+
+async function loadSavedTerms() {
+  try {
+    const { data } = await fetchSavedTerms();
+    savedTerms.value = normalizeSavedTerms(data);
+  } catch (error) {
+    console.error("저장 용어 조회 실패", error);
+    savedTerms.value = [];
+  }
+}
+
+async function handleSaveTerm(term) {
+  const termName = getTermName(term).trim();
+  const explanation = getTermExplanation(term).trim();
+  const normalizedName = normalizeTermName(term);
+
+  if (!termName || !normalizedName || isTermSaved(term) || isTermSaving(term)) return;
+
+  savingTermNames.value = new Set(savingTermNames.value).add(normalizedName);
+  termSaveErrors.value = {
+    ...termSaveErrors.value,
+    [normalizedName]: "",
+  };
+
+  try {
+    const { data } = await saveTerm(termName, explanation);
+    savedTerms.value = [...savedTerms.value, data];
+  } catch (error) {
+    console.error("용어 저장 실패", error);
+    termSaveErrors.value = {
+      ...termSaveErrors.value,
+      [normalizedName]: "용어 저장에 실패했습니다.",
+    };
+  } finally {
+    const nextSavingTermNames = new Set(savingTermNames.value);
+    nextSavingTermNames.delete(normalizedName);
+    savingTermNames.value = nextSavingTermNames;
+  }
+}
+
 async function loadDetail() {
   if (!route.params.id) return;
   isLoading.value = true;
@@ -632,6 +737,7 @@ async function loadDetail() {
 onMounted(() => {
   loadDetail();
   loadComments();
+  loadSavedTerms();
   document.addEventListener("keydown", handleReportKeydown);
   document.addEventListener("click", closeCommentMenu);
 });
@@ -857,7 +963,13 @@ const targetCompanyName = computed(() => {
 .term-badge-name::-webkit-details-marker { display: none; }
 .term-toggle-icon { color: var(--ai, #b8703f); font-size: 16px; line-height: 1; transition: transform 0.15s ease; }
 .term-detail-card[open] .term-toggle-icon { transform: rotate(45deg); }
-.term-explanation-txt { padding: 0 13px 13px; font-size: 13px; color: var(--text2); margin: 0; line-height: 1.65; }
+.term-explanation-box { position: relative; padding: 4px 13px 13px; }
+.term-explanation-txt { padding: 0 76px 0 0; font-size: 13px; color: var(--text2); margin: 0; line-height: 1.65; }
+.term-save-btn { position: absolute; top: 0; right: 13px; min-width: 64px; padding: 5px 8px; border: 1px solid var(--primary-border); border-radius: 7px; background: var(--primary-bg); color: var(--primary); font-size: 10.5px; font-weight: 800; cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
+.term-save-btn:hover:not(:disabled) { border-color: var(--primary); background: var(--primary); color: #ffffff; }
+.term-save-btn.saved { border-color: var(--primary); background: var(--primary); color: #ffffff; }
+.term-save-btn:disabled { cursor: default; opacity: 0.72; }
+.term-save-error { margin: 8px 0 0; color: #dc2626; font-size: 10.5px; line-height: 1.4; }
 .checkpoint-list { padding: 15px 15px 15px 34px; color: var(--text1); font-size: 13.5px; line-height: 1.75; margin: 0; background: var(--cream); border: 1px solid var(--border); border-radius: 12px; }
 .checkpoint-list li { margin-bottom: 6px; list-style-type: square; }
 .related-widgets-section { margin-top: 0; }
