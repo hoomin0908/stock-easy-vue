@@ -7,11 +7,11 @@
     >
       
       <div class="filter-bar">
-        <div v-if="route.query.stockId || route.query.themeId" class="selected-company-label">
+        <div v-if="route.query.stockId || route.query.themeId || route.query.sector" class="selected-company-label">
           <strong>
-            {{ route.query.stockName || route.query.themeName || "선택 항목" }}
+            {{ route.query.stockName || route.query.themeName || route.query.sector || "선택 항목" }}
           </strong>
-          <span>관련 뉴스</span>
+          <span>{{ route.query.sector ? "주제 검색 결과" : "관련 뉴스" }}</span>
         </div>
 
         <button
@@ -187,6 +187,31 @@ const themeKeywords = {
   "인공지능(AI)": ["인공지능", "AI", "챗GPT", "LLM", "딥러닝", "머신러닝", "생성형", "로봇"]
 };
 
+function getTopicSearchText(item) {
+  const relatedThemes = Array.isArray(item.related_themes)
+    ? item.related_themes
+        .map(theme => theme.name || theme.theme_name || theme.title)
+        .filter(Boolean)
+        .join(" ")
+    : "";
+
+  return [
+    item.topic,
+    item.subject,
+    item.category,
+    item.theme,
+    item.theme_name,
+    item.ai_analysis?.topic,
+    item.ai_analysis?.theme,
+    relatedThemes,
+    item.title,
+    item.content,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
 // 1. 백엔드 전체 목록 원본 데이터 스캔 엔진 (API 명세 완전 방어)
 const loadNews = async () => {
   const requestId = ++latestNewsRequestId;
@@ -276,22 +301,20 @@ const displayNewsList = computed(() => {
 
   // [필터 2] 사이드바 인기 섹터/테마 필터링 (딕셔너리 연관어 매핑)
   if (route.query.sector) {
-    const targetTheme = route.query.sector;
+    const targetTheme = String(route.query.sector);
     const keywords = themeKeywords[targetTheme];
 
     if (keywords && keywords.length > 0) {
       list = list.filter(n => {
-        const titleLower = n.title?.toLowerCase() || "";
-        const contentLower = n.content?.toLowerCase() || "";
+        const topicSearchText = getTopicSearchText(n);
         return keywords.some(keyword => {
           const kwLower = keyword.toLowerCase();
-          return titleLower.includes(kwLower) || contentLower.includes(kwLower);
+          return topicSearchText.includes(kwLower);
         });
       });
     } else {
       list = list.filter(n => {
-        return n.title?.toLowerCase().includes(targetTheme.toLowerCase()) || 
-               n.content?.toLowerCase().includes(targetTheme.toLowerCase());
+        return getTopicSearchText(n).includes(targetTheme.toLowerCase());
       });
     }
   }
