@@ -88,10 +88,23 @@ export function fetchWatchlist() {
   return api.get("/accounts/watchlist/");
 }
 
-// GET /api/v1/accounts/saved-terms/  → 저장된 용어
+// GET /api/v1/terms/my/ → 저장 용어 조회
 export function fetchSavedTerms() {
-  // TODO: 팀원 API 연동
-  return api.get("/accounts/saved-terms/");
+  return api.get("/terms/my/");
+}
+
+// POST /api/v1/terms/my/ → 저장 용어 등록
+export function saveTerm(term, explanation, newsId) {
+  return api.post("/terms/my/", {
+    term,
+    explanation,
+    news_id: newsId ?? null,
+  });
+}
+
+// DELETE /api/v1/terms/my/:userTermId/ → 저장 용어 삭제
+export function deleteSavedTerm(userTermId) {
+  return api.delete(`/terms/my/${userTermId}/`);
 }
 
 // GET /api/v1/comments/news/:newsId/ → 뉴스별 댓글 조회

@@ -30,7 +30,7 @@ const routes = [
   {
     path: "/glossary",
     name: "glossary",
-    component: () => import("../views/GlossaryView.vue"),
+    component: () => import("../views/TermsView.vue"),
   },
   {
     path: "/saved",

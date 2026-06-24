@@ -40,8 +40,8 @@
           <div v-else-if="savedTerms.length === 0" class="compact-state">저장한 용어가 없습니다.</div>
           <div v-else class="term-list">
             <article v-for="term in savedTerms" :key="term.id || term.term" class="term-row">
-              <strong>{{ term.term || term.title || term.name }}</strong>
-              <p>{{ term.description || term.meaning || "설명 정보가 없습니다." }}</p>
+              <strong>{{ getTermName(term) }}</strong>
+              <p>{{ getTermDescription(term) }}</p>
             </article>
           </div>
         </section>
@@ -167,6 +167,19 @@ function normalizeList(data) {
   if (Array.isArray(data?.terms)) return data.terms;
   if (Array.isArray(data?.data)) return data.data;
   return [];
+}
+
+function getTermName(item) {
+  return item?.term?.name || item?.term || item?.title || item?.name || "이름 없는 용어";
+}
+
+function getTermDescription(item) {
+  return (
+    item?.term?.description ||
+    item?.description ||
+    item?.meaning ||
+    "설명 정보가 없습니다."
+  );
 }
 
 async function loadInterestStocks() {

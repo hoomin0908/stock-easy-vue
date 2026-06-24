@@ -80,10 +80,28 @@
                 class="term-detail-card"
               >
                 <summary class="term-badge-name">
-                  <span>{{ tm.term }}</span>
+                  <span>{{ getTermName(tm) }}</span>
                   <span class="term-toggle-icon" aria-hidden="true">+</span>
                 </summary>
-                <p class="term-explanation-txt">{{ tm.explanation }}</p>
+                <button
+                  type="button"
+                  class="term-save-btn"
+                  :class="{ saved: isTermSaved(tm) }"
+                  :disabled="isTermSaving(tm)"
+                  :title="isTermSaved(tm) ? '용어 저장 취소' : '용어 저장'"
+                  :aria-label="isTermSaved(tm) ? '용어 저장 취소' : '용어 저장'"
+                  @click.stop="handleToggleSavedTerm(tm)"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M6 4.75A1.75 1.75 0 0 1 7.75 3h8.5A1.75 1.75 0 0 1 18 4.75V21l-6-3.75L6 21V4.75Z" />
+                  </svg>
+                </button>
+                <div class="term-explanation-box">
+                  <p class="term-explanation-txt">{{ getTermExplanation(tm) }}</p>
+                  <p v-if="getTermSaveError(tm)" class="term-save-error">
+                    {{ getTermSaveError(tm) }}
+                  </p>
+                </div>
               </details>
             </div>
           </section>
@@ -411,6 +429,9 @@ import {
   createComment,
   updateComment,
   deleteComment,
+  fetchSavedTerms,
+  saveTerm,
+  deleteSavedTerm,
 } from "../services/api";
 import { useAuth } from "../services/auth";
 
@@ -433,6 +454,9 @@ const commentLoadError = ref("");
 const commentMutationError = ref("");
 const showAiReport = ref(false);
 const openCommentMenuId = ref(null);
+const savedTerms = ref([]);
+const savingTermNames = ref(new Set());
+const termSaveErrors = ref({});
 
 const toggleWatchlist = inject("toggleWatchlist");
 const isWatched = inject("isWatched");
@@ -615,6 +639,99 @@ function handleReportKeydown(event) {
   if (event.key === "Escape" && showAiReport.value) closeAiReport();
 }
 
+function getTermName(term) {
+  if (typeof term?.term === "string") return term.term;
+  return term?.term?.name || term?.name || term?.title || "";
+}
+
+function getTermExplanation(term) {
+  return (
+    term?.explanation ||
+    term?.description ||
+    term?.term?.description ||
+    term?.meaning ||
+    ""
+  );
+}
+
+function normalizeTermName(term) {
+  return getTermName(term).trim().toLocaleLowerCase("ko-KR");
+}
+
+function normalizeSavedTerms(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.results)) return data.results;
+  return [];
+}
+
+function isTermSaved(term) {
+  return Boolean(getSavedTerm(term));
+}
+
+function getSavedTerm(term) {
+  const termName = normalizeTermName(term);
+  if (!termName) return null;
+  return savedTerms.value.find(
+    (savedTerm) => normalizeTermName(savedTerm) === termName
+  ) || null;
+}
+
+function isTermSaving(term) {
+  return savingTermNames.value.has(normalizeTermName(term));
+}
+
+function getTermSaveError(term) {
+  return termSaveErrors.value[normalizeTermName(term)] || "";
+}
+
+async function loadSavedTerms() {
+  try {
+    const { data } = await fetchSavedTerms();
+    savedTerms.value = normalizeSavedTerms(data);
+  } catch (error) {
+    console.error("저장 용어 조회 실패", error);
+    savedTerms.value = [];
+  }
+}
+
+async function handleToggleSavedTerm(term) {
+  const termName = getTermName(term).trim();
+  const explanation = getTermExplanation(term).trim();
+  const normalizedName = normalizeTermName(term);
+  const savedTerm = getSavedTerm(term);
+
+  if (!termName || !normalizedName || isTermSaving(term)) return;
+
+  savingTermNames.value = new Set(savingTermNames.value).add(normalizedName);
+  termSaveErrors.value = {
+    ...termSaveErrors.value,
+    [normalizedName]: "",
+  };
+
+  try {
+    if (savedTerm) {
+      await deleteSavedTerm(savedTerm.id);
+      savedTerms.value = savedTerms.value.filter((item) => item.id !== savedTerm.id);
+    } else {
+      const newsId = news.value?.id ?? route.params.id ?? null;
+      const { data } = await saveTerm(termName, explanation, newsId);
+      savedTerms.value = [...savedTerms.value, data];
+    }
+  } catch (error) {
+    console.error(savedTerm ? "용어 저장 취소 실패" : "용어 저장 실패", error);
+    termSaveErrors.value = {
+      ...termSaveErrors.value,
+      [normalizedName]: savedTerm
+        ? "용어 저장 취소에 실패했습니다."
+        : "용어 저장에 실패했습니다.",
+    };
+  } finally {
+    const nextSavingTermNames = new Set(savingTermNames.value);
+    nextSavingTermNames.delete(normalizedName);
+    savingTermNames.value = nextSavingTermNames;
+  }
+}
+
 async function loadDetail() {
   if (!route.params.id) return;
   isLoading.value = true;
@@ -632,6 +749,7 @@ async function loadDetail() {
 onMounted(() => {
   loadDetail();
   loadComments();
+  loadSavedTerms();
   document.addEventListener("keydown", handleReportKeydown);
   document.addEventListener("click", closeCommentMenu);
 });
@@ -849,15 +967,25 @@ const targetCompanyName = computed(() => {
 .hl-reason { font-size: 12.5px; line-height: 1.5; color: var(--text3); margin: 6px 0 0; }
 .highlight-empty-state { padding: 40px 20px; border: 1px dashed var(--border); border-radius: 12px; color: var(--text3); font-size: 13px; text-align: center; background: var(--cream-soft); }
 .terms-pill-grid { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; }
-.term-detail-card { min-width: 120px; max-width: 100%; background: var(--cream); border-radius: 10px; border: 1px solid var(--border); overflow: hidden; transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease; }
+.term-detail-card { position: relative; min-width: 120px; max-width: 100%; background: var(--cream); border-radius: 10px; border: 1px solid var(--border); overflow: hidden; transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease; }
 .term-detail-card:hover { background: #fff7ed; border-color: #dfc49e; box-shadow: 0 4px 14px rgba(184, 112, 63, 0.08); }
 .term-detail-card[open] { background: var(--ai-bg); border-color: var(--ai-border); box-shadow: 0 4px 14px rgba(184, 112, 63, 0.08); }
 .term-detail-card[open] { flex-basis: 100%; }
-.term-badge-name { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 13px; color: var(--primary); font-size: 12.5px; font-weight: 800; cursor: pointer; list-style: none; user-select: none; }
+.term-badge-name { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 36px 10px 13px; color: var(--primary); font-size: 12.5px; font-weight: 800; cursor: pointer; list-style: none; user-select: none; }
+.term-detail-card[open] .term-badge-name { padding-right: 76px; }
 .term-badge-name::-webkit-details-marker { display: none; }
-.term-toggle-icon { color: var(--ai, #b8703f); font-size: 16px; line-height: 1; transition: transform 0.15s ease; }
-.term-detail-card[open] .term-toggle-icon { transform: rotate(45deg); }
-.term-explanation-txt { padding: 0 13px 13px; font-size: 13px; color: var(--text2); margin: 0; line-height: 1.65; }
+.term-toggle-icon { position: absolute; top: 50%; right: 13px; color: var(--ai, #b8703f); font-size: 16px; line-height: 1; transform: translateY(-50%); transition: transform 0.15s ease; }
+.term-detail-card[open] .term-toggle-icon { transform: translateY(-50%) rotate(45deg); }
+.term-explanation-box { padding: 4px 13px 13px; }
+.term-explanation-txt { padding: 0; font-size: 13px; color: var(--text2); margin: 0; line-height: 1.65; }
+.term-save-btn { display: none; position: absolute; top: 5px; right: 39px; z-index: 1; width: 30px; height: 30px; align-items: center; justify-content: center; padding: 0; border: 1px solid var(--primary-border); border-radius: 7px; background: var(--cream); color: var(--primary); cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
+.term-detail-card[open] .term-save-btn { display: inline-flex; }
+.term-save-btn svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+.term-save-btn:hover:not(:disabled) { border-color: var(--primary); background: var(--primary); color: #ffffff; }
+.term-save-btn.saved { border-color: var(--primary); background: var(--primary); color: #ffffff; }
+.term-save-btn.saved svg { fill: currentColor; }
+.term-save-btn:disabled { cursor: default; opacity: 0.5; }
+.term-save-error { margin: 8px 0 0; color: #dc2626; font-size: 10.5px; line-height: 1.4; }
 .checkpoint-list { padding: 15px 15px 15px 34px; color: var(--text1); font-size: 13.5px; line-height: 1.75; margin: 0; background: var(--cream); border: 1px solid var(--border); border-radius: 12px; }
 .checkpoint-list li { margin-bottom: 6px; list-style-type: square; }
 .related-widgets-section { margin-top: 0; }
