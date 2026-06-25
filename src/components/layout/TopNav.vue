@@ -49,9 +49,6 @@
         </button>
       </form>
       <template v-if="isAuthenticated">
-        <button type="button" class="avatar" title="마이페이지" @click="goToMyPage">
-          {{ displayName }}
-        </button>
         <button class="logout-btn" :disabled="isLoggingOut" @click="handleLogout">
           {{ isLoggingOut ? "로그아웃 중" : "로그아웃" }}
         </button>
@@ -72,17 +69,13 @@ import { useAuth } from "../../services/auth";
 
 const route = useRoute();
 const router = useRouter();
-const { currentUser, isAuthenticated, logout } = useAuth();
+const { isAuthenticated, logout } = useAuth();
 const isLoggingOut = ref(false);
 const themeMode = inject("themeMode", ref("light"));
 const toggleTheme = inject("toggleTheme", () => {});
 const isSearchOpen = ref(false);
 const searchKeyword = ref("");
 const searchInput = ref(null);
-
-const displayName = computed(
-  () => currentUser.value?.nickname || currentUser.value?.email || "사용자"
-);
 
 const loginLink = computed(() => ({
   path: "/login",
@@ -135,10 +128,6 @@ function submitSearch() {
     path: "/news",
     query: { sector: keyword },
   });
-}
-
-function goToMyPage() {
-  router.push({ path: "/mypage" });
 }
 
 async function handleLogout() {
@@ -263,21 +252,6 @@ async function handleLogout() {
 .icon-btn:hover { border-color: var(--primary-border); box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06); }
 .icon-btn svg { width: 18px; height: 18px; stroke: var(--text2); stroke-width: 1.8; fill: none; stroke-linecap: round; }
 
-.avatar {
-  height: 34px;
-  padding: 0 12px;
-  border: none;
-  border-radius: 17px;
-  background: var(--primary);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.avatar:hover { background: var(--primary-hover); }
 .auth-link, .logout-btn {
   border: 1px solid var(--border);
   background: var(--cream);

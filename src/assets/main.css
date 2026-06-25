@@ -25,6 +25,14 @@
   --signal-down-bg: #eff6ff;
   --signal-neutral: #64748b;
   --signal-neutral-bg: #f1f5f9;
+  --danger: #dc2626;
+  --danger-bg: #fff7f7;
+  --danger-border: #fecaca;
+  --danger-surface: #ffffff;
+  --success: #047857;
+  --success-bg: #ecfdf5;
+  --error: #be123c;
+  --error-bg: #fff1f2;
 
   --bg: #ffffff;
   --bg2: #f8fafc;
@@ -33,6 +41,7 @@
   --text1: #111827;
   --text2: #4b5563;
   --text3: #6b7280;
+  --panel-shadow: 0 8px 22px rgba(255, 106, 0, 0.035);
 
   --radius: 8px;
   --radius-lg: 12px;
