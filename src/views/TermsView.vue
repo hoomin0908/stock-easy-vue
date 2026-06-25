@@ -30,9 +30,6 @@
             <div class="term-copy">
               <h2>{{ getTermName(item) }}</h2>
               <p>{{ getTermDescription(item) }}</p>
-              <p v-if="item.news?.id" class="source-news" :title="item.news.title">
-                출처 뉴스: {{ item.news.title || "제목 정보 없음" }}
-              </p>
             </div>
             <div class="term-actions">
               <button
@@ -280,12 +277,12 @@ onMounted(loadSavedTerms);
 .term-card {
   position: relative;
   min-width: 0;
-  min-height: 172px;
+  min-height: 154px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   border: 1px solid var(--border);
   border-radius: 16px;
   background: #ffffff;
@@ -314,15 +311,6 @@ onMounted(loadSavedTerms);
   font-size: 13.5px;
   line-height: 1.65;
   margin-top: 8px;
-}
-.term-copy .source-news {
-  max-width: 100%;
-  overflow: hidden;
-  color: var(--text2);
-  font-size: 11.5px;
-  font-weight: 650;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .term-actions {
   width: 100%;

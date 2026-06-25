@@ -13,23 +13,37 @@
         <div class="content-column">
           <section class="data-panel summary-panel">
             <div class="panel-title-row">
-              <h2>찜한 주식 종목</h2>
+              <h2>찜한 주식 목록</h2>
               <span>{{ interestStocks.length }}개</span>
             </div>
             <div v-if="isInterestsLoading" class="compact-state">관심 기업을 불러오는 중입니다...</div>
             <div v-else-if="interestStocks.length === 0" class="compact-state">등록한 관심 기업이 없습니다.</div>
             <div v-else class="stock-card-grid">
-              <button
+              <article
                 v-for="interest in visibleInterestStocks"
                 :key="interest.id"
-                type="button"
                 class="stock-card"
-                @click="goToStockNews(interest)"
               >
-                <strong>{{ interest.stock.stock_name }}</strong>
-                <p>{{ interest.stock.stock_code }} · 관심 기업으로 저장한 종목입니다.</p>
-                <span>관련 뉴스 보기</span>
-              </button>
+                <button
+                  type="button"
+                  class="stock-card-main"
+                  @click="goToStockNews(interest)"
+                >
+                  <strong>{{ interest.stock.stock_name }}</strong>
+                  <small>{{ interest.stock.stock_code }}</small>
+                </button>
+                <button
+                  type="button"
+                  class="heart-btn active"
+                  :disabled="deletingInterestId === interest.id"
+                  :title="`${interest.stock.stock_name} 관심 기업 삭제`"
+                  @click="removeInterestStock(interest)"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z" />
+                  </svg>
+                </button>
+              </article>
             </div>
             <button
               v-if="interestStocks.length > 2"
@@ -48,19 +62,18 @@
             </div>
             <div v-if="isSavedNewsLoading" class="compact-state">저장한 뉴스를 불러오는 중입니다...</div>
             <div v-else-if="savedNews.length === 0" class="compact-state">저장한 뉴스가 없습니다.</div>
-            <div v-else class="recent-news-list">
-              <router-link
+            <div v-else class="mypage-saved-news-grid">
+              <div
                 v-for="item in visibleSavedNews"
                 :key="item.id"
-                class="recent-news-row"
-                :to="`/news/${item.news.id}`"
+                class="mypage-saved-news-card"
               >
-                <div>
-                  <strong>{{ item.news.title }}</strong>
-                  <small>{{ item.news.publisher || "언론사 정보 없음" }} · {{ formatSavedAt(item.created_at) }}</small>
-                </div>
-                <span>보기</span>
-              </router-link>
+                <NewsCard :news="item.news" :show-viewed-state="false">
+                  <template #footer>
+                    {{ formatSavedAt(item.created_at) }} 저장
+                  </template>
+                </NewsCard>
+              </div>
             </div>
             <button
               v-if="savedNews.length > 3"
@@ -90,9 +103,11 @@
             <div v-if="isTermsLoading" class="compact-state">저장한 용어를 불러오는 중입니다...</div>
             <div v-else-if="savedTerms.length === 0" class="compact-state">저장한 용어가 없습니다.</div>
             <div v-else class="term-card-grid">
-              <article v-for="term in visibleSavedTerms" :key="term.id || term.term" class="term-row">
-                <strong>{{ getTermName(term) }}</strong>
-                <p>{{ getTermDescription(term) }}</p>
+              <article v-for="term in visibleSavedTerms" :key="term.id || term.term" class="term-card">
+                <div class="term-copy">
+                  <h3>{{ getTermName(term) }}</h3>
+                  <p>{{ getTermDescription(term) }}</p>
+                </div>
               </article>
             </div>
             <button
@@ -140,7 +155,8 @@
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAuth } from "../services/auth";
-import { fetchInterestStocks, fetchSavedNews, fetchSavedTerms } from "../services/api";
+import { deleteInterestStock, fetchInterestStocks, fetchSavedNews, fetchSavedTerms } from "../services/api";
+import NewsCard from "../components/news/NewsCard.vue";
 
 const SAVED_TERMS_KEY = "stockeasy-saved-terms";
 
@@ -153,6 +169,7 @@ const savedNews = ref([]);
 const isInterestsLoading = ref(false);
 const isTermsLoading = ref(false);
 const isSavedNewsLoading = ref(false);
+const deletingInterestId = ref(null);
 const showAllInterests = ref(false);
 const showAllTerms = ref(false);
 const showAllSavedNews = ref(false);
@@ -192,6 +209,7 @@ function getTermDescription(item) {
   return (
     item?.term?.description ||
     item?.description ||
+    item?.explanation ||
     item?.meaning ||
     "설명 정보가 없습니다."
   );
@@ -291,6 +309,23 @@ function goToStockNews(interest) {
   });
 }
 
+async function removeInterestStock(interest) {
+  if (deletingInterestId.value !== null) return;
+  if (!window.confirm(`${interest.stock.stock_name}을(를) 관심 기업에서 삭제하시겠습니까?`)) return;
+
+  deletingInterestId.value = interest.id;
+
+  try {
+    await deleteInterestStock(interest.id);
+    interestStocks.value = interestStocks.value.filter((item) => item.id !== interest.id);
+  } catch (error) {
+    console.error("마이페이지 관심 기업 삭제 실패", error);
+    window.alert("관심 기업을 삭제하지 못했습니다.");
+  } finally {
+    deletingInterestId.value = null;
+  }
+}
+
 function getProfileErrorMessage(error) {
   const data = error.response?.data;
 
@@ -353,7 +388,7 @@ onMounted(() => {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-  background: var(--bg2);
+  background: #eef2f7;
   padding: 24px;
 }
 .content-section {
@@ -398,7 +433,6 @@ onMounted(() => {
 }
 .data-panel {
   border: 1px solid var(--border);
-  border-top-color: var(--primary-border);
   border-radius: var(--radius);
   background: var(--cream);
   padding: 18px;
@@ -445,101 +479,172 @@ onMounted(() => {
   flex: 1;
 }
 .stock-card {
+  position: relative;
   border: 1px solid var(--border);
-  border-left-color: var(--primary-border);
-  border-radius: var(--radius);
-  background: var(--bg2);
-  min-height: 118px;
-  padding: 12px;
+  border-radius: 16px;
+  background: #ffffff;
+  min-height: 154px;
+  padding: 0;
   text-align: left;
-  cursor: pointer;
   display: flex;
-  flex-direction: column;
+  align-items: stretch;
+  box-shadow: var(--panel-shadow);
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.15s ease;
 }
 .stock-card:hover {
-  border-color: var(--primary-border);
-  background: var(--primary-bg);
+  z-index: 2;
+  transform: translateY(-5px) scale(1.015);
+  border-color: var(--border);
+  background: #ffffff;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.14);
 }
-.stock-card strong,
-.stock-card p,
-.stock-card span {
+.stock-card-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 18px 48px 18px 18px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.stock-card-main strong,
+.stock-card-main small {
   display: block;
 }
-.stock-card strong {
+.stock-card-main strong {
   color: var(--text1);
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: 18px;
+  font-weight: 850;
+  line-height: 1.4;
+}
+.stock-card-main small {
+  color: var(--text3);
+  font-size: 13.5px;
+  line-height: 1.65;
+  margin-top: 8px;
+}
+.heart-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.heart-btn:hover { background: #fff1f2; color: #fb7185; }
+.heart-btn svg { width: 17px; height: 17px; fill: transparent; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.heart-btn.active { color: var(--primary); }
+.heart-btn.active svg { fill: currentColor; stroke: currentColor; }
+.heart-btn.active:hover { background: var(--primary-bg); color: var(--primary-hover); }
+.heart-btn:disabled { opacity: 0.65; cursor: not-allowed; }
+.mypage-saved-news-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.mypage-saved-news-card {
+  min-width: 0;
+}
+.mypage-saved-news-card :deep(.news-card) {
+  padding: 12px;
+  border-radius: var(--radius);
+  box-shadow: none;
+}
+.mypage-saved-news-card :deep(.news-card:hover) {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
+}
+.mypage-saved-news-card :deep(.card-body-layout) {
+  gap: 12px;
+}
+.mypage-saved-news-card :deep(.news-thumb-box) {
+  width: 112px;
+}
+.mypage-saved-news-card :deep(.news-top-row) {
+  margin-bottom: 6px;
+  font-size: 11.5px;
+}
+.mypage-saved-news-card :deep(.sentiment-badge) {
+  padding: 2px 7px;
+  font-size: 10.5px;
+}
+.mypage-saved-news-card :deep(.meta-divider) {
+  margin: 0 5px;
+}
+.mypage-saved-news-card :deep(.news-title-link) {
+  font-size: 13.5px;
+  line-height: 1.4;
   margin-bottom: 5px;
 }
-.stock-card p {
-  color: var(--text3);
-  font-size: 11.5px;
-  line-height: 1.5;
-  margin-bottom: 12px;
+.mypage-saved-news-card :deep(.news-author-row) {
+  margin-top: 3px;
 }
-.stock-card span {
-  margin-top: auto;
-  color: var(--primary);
-  font-size: 11.5px;
-  font-weight: 800;
+.mypage-saved-news-card :deep(.news-author-txt),
+.mypage-saved-news-card :deep(.origin-link-btn) {
+  font-size: 11px;
 }
-.recent-news-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.term-row,
-.recent-news-row {
-  border: 1px solid var(--border);
-  border-left-color: var(--primary-border);
-  border-radius: var(--radius);
-  background: var(--bg2);
-  min-height: 118px;
-  padding: 12px;
-}
-.term-row {
-  display: flex;
-  flex-direction: column;
-}
-.term-row strong,
-.recent-news-row strong {
-  display: block;
-  color: var(--text1);
-  font-size: 13px;
-  line-height: 1.45;
-}
-.term-row p,
-.recent-news-row small {
-  display: block;
-  color: var(--text3);
-  font-size: 11.5px;
-  line-height: 1.5;
+.mypage-saved-news-card :deep(.news-card-footer) {
   margin-top: 5px;
+  font-size: 11px;
 }
-.term-row p {
+.term-card {
+  position: relative;
+  min-width: 0;
+  min-height: 154px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 18px;
+  box-shadow: var(--panel-shadow);
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+.term-card:hover {
+  z-index: 2;
+  transform: translateY(-5px) scale(1.015);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.14);
+}
+.term-copy {
+  flex: 1;
+  min-width: 0;
+}
+.term-copy h3 {
+  color: var(--text1);
+  font-size: 18px;
+  font-weight: 850;
+  line-height: 1.4;
+}
+.term-copy p {
   display: -webkit-box;
   overflow: hidden;
-  -webkit-line-clamp: 3;
+  color: var(--text3);
+  font-size: 13.5px;
+  line-height: 1.65;
+  margin-top: 8px;
+  -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
-}
-.recent-news-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-}
-.recent-news-row span {
-  flex-shrink: 0;
-  color: var(--primary);
-  font-size: 12px;
-  font-weight: 850;
 }
 .more-toggle-btn {
   width: 100%;
   margin-top: 10px;
-  border: 1px solid var(--primary-border);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--primary-bg);
+  background: #ffffff;
   color: var(--primary);
   padding: 8px 10px;
   font-size: 12px;
@@ -547,7 +652,8 @@ onMounted(() => {
   cursor: pointer;
 }
 .more-toggle-btn:hover {
-  background: rgba(255, 106, 0, 0.16);
+  border-color: #cbd5e1;
+  background: #ffffff;
 }
 .field-label {
   display: flex;
@@ -575,8 +681,8 @@ onMounted(() => {
   cursor: not-allowed;
 }
 .field-label input:focus {
-  border-color: var(--primary-border);
-  box-shadow: 0 0 0 3px rgba(255, 106, 0, 0.08);
+  border-color: #cbd5e1;
+  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.12);
 }
 .form-message {
   margin-top: 12px;
@@ -595,14 +701,18 @@ onMounted(() => {
 }
 .primary-btn {
   margin-top: 14px;
-  border: none;
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--primary);
-  color: #ffffff;
+  background: #ffffff;
+  color: var(--primary);
   padding: 10px 13px;
   font-size: 12px;
   font-weight: 850;
   cursor: pointer;
+}
+.primary-btn:hover:not(:disabled) {
+  border-color: #cbd5e1;
+  background: #ffffff;
 }
 .primary-btn:disabled {
   opacity: 0.55;

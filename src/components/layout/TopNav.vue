@@ -86,13 +86,7 @@
           <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
         </button>
       </form>
-      <template v-if="isAuthenticated">
-        <button class="logout-btn" :disabled="isLoggingOut" @click="handleLogout">
-          {{ isLoggingOut ? "로그아웃 중" : "로그아웃" }}
-        </button>
-      </template>
-
-      <template v-else>
+      <template v-if="!isAuthenticated">
         <router-link class="auth-link" :to="loginLink">로그인</router-link>
         <router-link class="signup-link" to="/signup">회원가입</router-link>
       </template>
@@ -107,8 +101,7 @@ import { useAuth } from "../../services/auth";
 
 const route = useRoute();
 const router = useRouter();
-const { isAuthenticated, logout } = useAuth();
-const isLoggingOut = ref(false);
+const { isAuthenticated } = useAuth();
 const themeMode = inject("themeMode", ref("light"));
 const toggleTheme = inject("toggleTheme", () => {});
 const isSearchOpen = ref(false);
@@ -206,21 +199,6 @@ function submitSearch() {
     path: "/news",
     query: { sector: keyword },
   });
-}
-
-async function handleLogout() {
-  if (isLoggingOut.value) return;
-
-  isLoggingOut.value = true;
-  try {
-    await logout();
-    await router.push("/");
-  } catch (error) {
-    console.error("로그아웃 실패", error);
-    window.alert("로그아웃하지 못했습니다. 잠시 후 다시 시도해 주세요.");
-  } finally {
-    isLoggingOut.value = false;
-  }
 }
 
 onMounted(() => {
@@ -412,7 +390,7 @@ onUnmounted(() => {
 .icon-btn:hover { border-color: var(--primary-border); }
 .icon-btn svg { width: 18px; height: 18px; stroke: var(--text2); stroke-width: 1.8; fill: none; stroke-linecap: round; }
 
-.auth-link, .logout-btn {
+.auth-link {
   border: 1px solid var(--border);
   background: var(--cream);
   color: var(--text2);
@@ -421,7 +399,7 @@ onUnmounted(() => {
   font-size: 12.5px;
   cursor: pointer;
 }
-.auth-link:hover, .logout-btn:hover { border-color: var(--primary-border); color: var(--primary); }
+.auth-link:hover { border-color: var(--primary-border); color: var(--primary); }
 .signup-link {
   background: var(--primary);
   color: #ffffff;
@@ -431,8 +409,6 @@ onUnmounted(() => {
   font-weight: 600;
 }
 .signup-link:hover { background: var(--primary-hover); }
-.logout-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-
 @media (max-width: 900px) {
   .top-search-form.active { min-width: 150px; }
   .top-search-input,

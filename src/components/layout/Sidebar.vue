@@ -4,7 +4,7 @@
     :class="{ collapsed: !isOpen }"
   >
     <div class="sidebar-header">
-      <router-link class="sidebar-logo" :to="isAuthenticated ? '/news' : '/'">
+      <router-link class="sidebar-logo" to="/news" title="뉴스 첫 페이지" @click.prevent="goToNewsHome">
         <div class="logo-badge">
           <svg viewBox="0 0 16 16"><polyline points="1,12 5,7 9,10 15,3" /></svg>
         </div>
@@ -35,7 +35,7 @@
     </nav>
 
     <div
-      v-if="isOpen"
+      v-show="isOpen"
       class="section-content"
       :class="{ 'watchlist-content': activeSection === 'watchlist' }"
     >
@@ -238,6 +238,15 @@
         >
           <div class="user-display-name">{{ userDisplayName }}</div>
         </button>
+        <button
+          v-if="isOpen && isAuthenticated"
+          type="button"
+          class="sidebar-logout-btn"
+          :disabled="isLoggingOut"
+          @click="handleLogout"
+        >
+          {{ isLoggingOut ? "로그아웃 중" : "로그아웃" }}
+        </button>
       </div>
     </div>
   </aside>
@@ -260,7 +269,8 @@ const router = useRouter();
 const isOpen = ref(true);
 const activeSection = ref("watchlist");
 const themeSearch = ref("");
-const { currentUser, isAuthenticated } = useAuth();
+const { currentUser, isAuthenticated, logout } = useAuth();
+const isLoggingOut = ref(false);
 const interestStocks = ref([]);
 const stocks = ref([]);
 const stockSearch = ref("");
@@ -329,6 +339,36 @@ function isSectionActive(key) {
 
 function goToMyPage() {
   router.push({ path: "/mypage" });
+}
+
+function goToNewsHome() {
+  activeSection.value = "watchlist";
+  router.push({ path: "/news", query: {} });
+}
+
+function updateSidebarWidthVar() {
+  const width = window.innerWidth <= 760
+    ? 0
+    : window.innerWidth <= 1180 || !isOpen.value
+      ? 68
+      : 270;
+
+  document.documentElement.style.setProperty("--stockeasy-sidebar-width", `${width}px`);
+}
+
+async function handleLogout() {
+  if (isLoggingOut.value) return;
+
+  isLoggingOut.value = true;
+  try {
+    await logout();
+    await router.push("/");
+  } catch (error) {
+    console.error("로그아웃 실패", error);
+    window.alert("로그아웃하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+  } finally {
+    isLoggingOut.value = false;
+  }
 }
 
 async function loadInterestStocks() {
@@ -607,12 +647,17 @@ function handleThemeClick(theme) {
 }
 
 onMounted(() => {
+  updateSidebarWidthVar();
+  window.addEventListener("resize", updateSidebarWidthVar);
+
   if (currentUser.value) {
     loadInterestStocks();
     loadStocks();
     loadRecommendedThemes();
   }
 });
+
+watch(isOpen, updateSidebarWidthVar, { immediate: true });
 
 watch(currentUser, (user) => {
   stockSearch.value = "";
@@ -645,6 +690,7 @@ watch(
 
 onBeforeUnmount(() => {
   window.clearTimeout(searchTimer);
+  window.removeEventListener("resize", updateSidebarWidthVar);
 });
 </script>
 
@@ -653,13 +699,15 @@ onBeforeUnmount(() => {
 .sidebar.collapsed { width: 68px; }
 .sidebar-header { min-height: 44px; display: flex; align-items: center; gap: 6px; margin: 0 12px 12px; }
 .sidebar-logo { min-width: 0; flex: 1; display: flex; align-items: center; gap: 9px; padding: 6px 8px; color: var(--text1); font-size: 17px; font-weight: 850; letter-spacing: 0; overflow: hidden; }
-.sidebar.collapsed .sidebar-header { justify-content: center; margin-inline: 12px; }
-.sidebar.collapsed .sidebar-logo { display: none; }
+.sidebar.collapsed .sidebar-header { min-height: 96px; flex-direction: column; justify-content: flex-start; gap: 18px; margin-inline: 10px; margin-bottom: 12px; }
+.sidebar.collapsed .sidebar-logo { flex: 0 0 auto; justify-content: center; width: 100%; padding: 4px 0; }
 .logo-badge { width: 32px; height: 32px; border-radius: 9px; background: var(--primary); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 22px rgba(255, 106, 0, 0.32); flex-shrink: 0; }
 .logo-badge svg { width: 14px; height: 14px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; }
 .toggle-btn { width: 34px; height: 34px; flex-shrink: 0; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 8px; color: var(--text2); transition: all 0.2s ease; }
 .toggle-btn:hover { background: var(--bg2); color: var(--text1); }
 .toggle-btn svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.8; fill: none; transition: transform 0.25s ease; }
+.toggle-btn span { display: none; }
+.sidebar.collapsed .toggle-btn { width: 42px; height: 42px; min-height: 42px; padding: 0; }
 .section-nav { display: flex; flex-direction: column; gap: 8px; padding: 4px 12px 10px; }
 .section-btn { min-height: 52px; display: flex; align-items: center; gap: 12px; padding: 14px; border: none; background: transparent; border-radius: var(--radius); cursor: pointer; color: var(--text2); font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; transition: all 0.2s ease; }
 .section-btn:hover { background: var(--bg2); color: var(--text1); }
@@ -743,15 +791,20 @@ onBeforeUnmount(() => {
 .user-avatar-circle:hover { background: var(--primary-hover); }
 .user-profile-meta { flex: 1; min-width: 0; text-align: left; border: none; background: transparent; padding: 0; cursor: pointer; }
 .user-display-name { font-size: 14px; font-weight: 750; color: var(--primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-logout-btn { flex-shrink: 0; padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--cream); color: var(--text2); font-size: 12px; font-weight: 750; cursor: pointer; transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease; }
+.sidebar-logout-btn:hover:not(:disabled) { border-color: var(--primary-border); color: var(--primary); background: var(--primary-bg); }
+.sidebar-logout-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 .icon-btn-sm { width: 28px; height: 28px; flex-shrink: 0; border: none; background: transparent; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text3); }
 .icon-btn-sm:hover { background: var(--bg2); color: var(--text1); }
 .icon-btn-sm svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 1.7; fill: none; }
 
 @media (max-width: 1180px) {
   .sidebar { width: 68px !important; }
+  .sidebar .sidebar-logo span,
   .sidebar .section-label,
   .sidebar .section-content,
   .sidebar .user-profile-meta,
+  .sidebar .sidebar-logout-btn,
   .sidebar .sidebar-footer .icon-btn-sm { display: none; }
   .sidebar .section-btn { justify-content: center; padding: 10px; }
   .sidebar .sidebar-footer { padding: 14px 17px; }
