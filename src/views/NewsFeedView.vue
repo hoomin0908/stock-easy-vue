@@ -587,11 +587,11 @@ watch(
 .filter-chip { flex: 0 0 auto; min-width: 54px; padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--cream); font-size: 12.5px; font-weight: 700; color: var(--text2); cursor: pointer; transition: all 0.18s ease; white-space: nowrap; }
 .filter-chip:hover { border-color: var(--primary-border); color: var(--primary); }
 .filter-chip.active { background: var(--primary); color: #ffffff; border-color: var(--primary); font-weight: 800; box-shadow: none; }
-.list-scroll { flex: 1; overflow-y: auto; padding: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 14px; background: linear-gradient(180deg, #fffaf5 0%, var(--cream) 36%); }
+.list-scroll { flex: 1; overflow-y: auto; padding: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 14px; background: linear-gradient(180deg, var(--bg2) 0%, var(--cream) 42%); }
 .list-scroll.detail-open { display: flex; flex-direction: column; gap: 12px; }
 .list-scroll > .empty-state { grid-column: 1 / -1; }
 .list-scroll::-webkit-scrollbar { width: 4px; }
-.list-scroll::-webkit-scrollbar-thumb { background: #d6dde5; border-radius: 2px; }
+.list-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 .pagination-bar {
   display: flex;
   align-items: center;

@@ -1,6 +1,7 @@
 import { computed, readonly, ref } from "vue";
 import {
   fetchCurrentUser,
+  updateCurrentUser,
   signupAccount,
   loginAccount,
   logoutAccount,
@@ -15,6 +16,24 @@ let initializePromise = null;
 function applyMeResponse(data) {
   currentUser.value =
     data?.isAuthenticated && data?.user ? data.user : null;
+}
+
+function applyUserResponse(data) {
+  if (data?.isAuthenticated && data?.user) {
+    currentUser.value = data.user;
+    return currentUser.value;
+  }
+
+  if (data?.user) {
+    currentUser.value = data.user;
+    return currentUser.value;
+  }
+
+  currentUser.value =
+    data && typeof data === "object"
+      ? { ...(currentUser.value || {}), ...data }
+      : currentUser.value;
+  return currentUser.value;
 }
 
 async function initializeAuth() {
@@ -74,6 +93,20 @@ async function logout() {
   currentUser.value = null;
 }
 
+async function updateProfile(payload) {
+  await initializeAuth();
+
+  const response = await updateCurrentUser(payload);
+
+  if (response.data) {
+    return applyUserResponse(response.data);
+  }
+
+  const { data } = await fetchCurrentUser();
+  applyMeResponse(data);
+  return currentUser.value;
+}
+
 export function useAuth() {
   return {
     currentUser: readonly(currentUser),
@@ -84,5 +117,6 @@ export function useAuth() {
     signup,
     login,
     logout,
+    updateProfile,
   };
 }

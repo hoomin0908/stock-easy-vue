@@ -13,7 +13,7 @@
 </template>
 
 <script setup>
-import { ref, provide, watch } from "vue";
+import { onMounted, ref, provide, watch } from "vue";
 import { useRoute } from "vue-router";
 import TopNav from "./components/layout/TopNav.vue";
 import Sidebar from "./components/layout/Sidebar.vue";
@@ -68,6 +68,12 @@ provide("toggleTheme", () => {
 
 watch(themeMode, (mode) => {
   localStorage.setItem("stockeasy-theme", mode);
+  document.documentElement.dataset.theme = mode;
+  document.documentElement.style.colorScheme = mode;
+}, { immediate: true });
+
+onMounted(() => {
+  document.documentElement.dataset.theme = themeMode.value;
 });
 </script>
 
@@ -78,26 +84,39 @@ watch(themeMode, (mode) => {
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
 
 .app.theme-dark {
-  --cream: #0f1115;
-  --cream-soft: #151922;
-  --cream-deep: #1c2230;
-  --charcoal: #0b0d12;
-  --charcoal-soft: #111827;
+  --cream: #171a21;
+  --cream-soft: #1d222b;
+  --cream-deep: #252c37;
+  --charcoal: #0f1218;
+  --charcoal-soft: #171a21;
 
   --ai: #f59e0b;
-  --ai-bg: #17110a;
-  --ai-bg-strong: #2b1b0a;
-  --ai-border: #5c3a11;
+  --ai-bg: rgba(245, 158, 11, 0.1);
+  --ai-bg-strong: rgba(245, 158, 11, 0.18);
+  --ai-border: rgba(245, 158, 11, 0.32);
 
-  --bg: #0b0d12;
-  --bg2: #111827;
-  --bg3: #1f2937;
-  --border: #263244;
-  --text1: #f3f4f6;
-  --text2: #cbd5e1;
-  --text3: #94a3b8;
+  --signal-up-bg: rgba(220, 38, 38, 0.12);
+  --signal-down-bg: rgba(37, 99, 235, 0.14);
+  --signal-neutral-bg: rgba(100, 116, 139, 0.16);
+  --danger: #f87171;
+  --danger-bg: rgba(248, 113, 113, 0.08);
+  --danger-border: rgba(248, 113, 113, 0.28);
+  --danger-surface: #1f232c;
+  --success: #34d399;
+  --success-bg: rgba(52, 211, 153, 0.12);
+  --error: #fb7185;
+  --error-bg: rgba(251, 113, 133, 0.12);
+
+  --bg: #101319;
+  --bg2: #121720;
+  --bg3: #1d2430;
+  --border: #2b3442;
+  --text1: #f8fafc;
+  --text2: #d2dae7;
+  --text3: #99a6b8;
 
   --primary-bg: rgba(255, 106, 0, 0.14);
-  --primary-border: rgba(255, 126, 32, 0.3);
+  --primary-border: rgba(255, 126, 32, 0.34);
+  --panel-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
 }
 </style>
