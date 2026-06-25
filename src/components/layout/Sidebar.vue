@@ -3,20 +3,22 @@
     class="sidebar"
     :class="{ collapsed: !isOpen }"
   >
-    <router-link class="sidebar-logo" :to="isAuthenticated ? '/news' : '/'">
-      <div class="logo-badge">
-        <svg viewBox="0 0 16 16"><polyline points="1,12 5,7 9,10 15,3" /></svg>
-      </div>
-      <span v-if="isOpen">STOCKEASY</span>
-    </router-link>
+    <div class="sidebar-header">
+      <router-link class="sidebar-logo" :to="isAuthenticated ? '/news' : '/'">
+        <div class="logo-badge">
+          <svg viewBox="0 0 16 16"><polyline points="1,12 5,7 9,10 15,3" /></svg>
+        </div>
+        <span v-if="isOpen">STOCKEASY</span>
+      </router-link>
 
-    <button class="toggle-btn" :title="isOpen ? '사이드바 닫기' : '사이드바 열기'" @click="isOpen = !isOpen">
-      <svg viewBox="0 0 24 24" :style="{ transform: isOpen ? 'none' : 'rotate(180deg)' }">
-        <rect x="3" y="4" width="18" height="16" rx="2" />
-        <line x1="9" y1="4" x2="9" y2="20" />
-        <polyline points="6,9 4,12 6,15" style="display:none" />
-      </svg>
-    </button>
+      <button class="toggle-btn" :title="isOpen ? '사이드바 닫기' : '사이드바 열기'" @click="isOpen = !isOpen">
+        <svg viewBox="0 0 24 24" :style="{ transform: isOpen ? 'none' : 'rotate(180deg)' }">
+          <rect x="3" y="4" width="18" height="16" rx="2" />
+          <line x1="9" y1="4" x2="9" y2="20" />
+          <polyline points="6,9 4,12 6,15" style="display:none" />
+        </svg>
+      </button>
+    </div>
 
     <nav class="section-nav">
       <button
@@ -649,15 +651,17 @@ onBeforeUnmount(() => {
 <style scoped>
 .sidebar { width: 270px; flex-shrink: 0; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 12px 0 0; transition: width 0.25s ease; background: var(--cream); overflow: visible; position: relative; }
 .sidebar.collapsed { width: 68px; }
-.sidebar-logo { min-height: 44px; display: flex; align-items: center; gap: 9px; margin: 0 12px 8px; padding: 6px 8px; color: var(--text1); font-size: 17px; font-weight: 850; letter-spacing: 0; overflow: hidden; }
-.sidebar.collapsed .sidebar-logo { justify-content: center; padding: 6px 0; }
+.sidebar-header { min-height: 44px; display: flex; align-items: center; gap: 6px; margin: 0 12px 12px; }
+.sidebar-logo { min-width: 0; flex: 1; display: flex; align-items: center; gap: 9px; padding: 6px 8px; color: var(--text1); font-size: 17px; font-weight: 850; letter-spacing: 0; overflow: hidden; }
+.sidebar.collapsed .sidebar-header { justify-content: center; margin-inline: 12px; }
+.sidebar.collapsed .sidebar-logo { display: none; }
 .logo-badge { width: 32px; height: 32px; border-radius: 9px; background: var(--primary); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 22px rgba(255, 106, 0, 0.32); flex-shrink: 0; }
 .logo-badge svg { width: 14px; height: 14px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; }
-.toggle-btn { width: 34px; height: 34px; margin: 0 0 12px 16px; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 8px; color: var(--text2); transition: all 0.2s ease; }
+.toggle-btn { width: 34px; height: 34px; flex-shrink: 0; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 8px; color: var(--text2); transition: all 0.2s ease; }
 .toggle-btn:hover { background: var(--bg2); color: var(--text1); }
 .toggle-btn svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.8; fill: none; transition: transform 0.25s ease; }
-.section-nav { display: flex; flex-direction: column; gap: 4px; padding: 0 12px; }
-.section-btn { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border: none; background: transparent; border-radius: var(--radius); cursor: pointer; color: var(--text2); font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; transition: all 0.2s ease; }
+.section-nav { display: flex; flex-direction: column; gap: 8px; padding: 4px 12px 10px; }
+.section-btn { min-height: 52px; display: flex; align-items: center; gap: 12px; padding: 14px; border: none; background: transparent; border-radius: var(--radius); cursor: pointer; color: var(--text2); font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; transition: all 0.2s ease; }
 .section-btn:hover { background: var(--bg2); color: var(--text1); }
 .section-btn.active { background: linear-gradient(90deg, rgba(255,106,0,.12), rgba(255,106,0,.03)); color: var(--primary); font-weight: 750; box-shadow: inset 3px 0 0 var(--primary); }
 .sidebar.collapsed .section-btn.active { background: transparent; color: var(--text2); box-shadow: none; font-weight: inherit; }
@@ -749,7 +753,6 @@ onBeforeUnmount(() => {
   .sidebar .section-content,
   .sidebar .user-profile-meta,
   .sidebar .sidebar-footer .icon-btn-sm { display: none; }
-  .sidebar .toggle-btn { margin-left: 16px; }
   .sidebar .section-btn { justify-content: center; padding: 10px; }
   .sidebar .sidebar-footer { padding: 14px 17px; }
 }
