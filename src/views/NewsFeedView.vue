@@ -6,9 +6,8 @@
       :style="route.params.id ? { width: `${listWidth}px` } : undefined"
     >
       
-      <div class="filter-bar">
+      <div v-if="selectedNewsScopeLabel" class="filter-bar">
         <div
-          v-if="selectedNewsScopeLabel"
           class="selected-company-label"
           :class="{ 'topic-search-label': isTopicSearch }"
         >
@@ -17,16 +16,6 @@
           </strong>
           <span>{{ isTopicSearch ? "주제 검색 결과" : "관련 뉴스" }}</span>
         </div>
-
-        <button
-          v-for="f in filters"
-          :key="f.value"
-          class="filter-chip"
-          :class="{ active: activeFilter === f.value }"
-          @click="handleFilterClick(f.value)"
-        >
-          {{ f.label }}
-        </button>
       </div>
 
       <div class="list-scroll" :class="{ 'detail-open': route.params.id }">
@@ -123,13 +112,12 @@ const isResizing = ref(false);
 // App.vue 전역 관심종목 검색어 Inject
 const selectedStockFilter = inject("selectedStockFilter", ref(null));
 
-const filters = [
-  { label: "전체", value: "ALL" },
-  { label: "호재", value: "POSITIVE" },
-  { label: "악재", value: "NEGATIVE" },
-  { label: "중립", value: "NEUTRAL" },
-];
-const activeFilter = ref("ALL");
+const activeFilter = computed(() => {
+  const sentiment = String(route.query.sentiment || "").toUpperCase();
+  return ["POSITIVE", "NEGATIVE", "NEUTRAL"].includes(sentiment)
+    ? sentiment
+    : "ALL";
+});
 const newsList = ref([]);
 const isNewsLoading = ref(false);
 const newsError = ref("");
@@ -384,14 +372,6 @@ const loadNews = async () => {
   }
 };
 
-function handleFilterClick(value) {
-  activeFilter.value = value;
-
-  if (value === "ALL" && (route.query.stockId || route.query.themeId || route.query.sector)) {
-    router.push({ path: "/news", query: {} });
-  }
-}
-
 // 💡 2. 자식(NewsCard)의 가중치 판별 알고리즘을 100% 동일하게 복제
 function getNewsSentiment(item) {
   if (item.ai_analysis?.sentiment) {
@@ -583,9 +563,6 @@ watch(
   background: var(--bg2);
   border: none;
 }
-.filter-chip { flex: 0 0 auto; min-width: 54px; padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--cream); font-size: 12.5px; font-weight: 700; color: var(--text2); cursor: pointer; transition: all 0.18s ease; white-space: nowrap; }
-.filter-chip:hover { border-color: var(--primary-border); color: var(--primary); }
-.filter-chip.active { background: var(--primary); color: #ffffff; border-color: var(--primary); font-weight: 800; box-shadow: none; }
 .list-scroll { flex: 1; overflow-y: auto; padding: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 14px; background: var(--bg2); }
 .list-scroll.detail-open { display: flex; flex-direction: column; gap: 12px; }
 .list-scroll > .empty-state { grid-column: 1 / -1; }
@@ -631,7 +608,6 @@ watch(
   .selected-company-label { padding: 10px 12px; font-size: 14px; }
   .selected-company-label strong { font-size: 16px; }
   .selected-company-label span { font-size: 13px; }
-  .filter-chip { flex: 1 1 0; min-width: 44px; padding: 6px 8px; font-size: 11.5px; }
   .list-scroll { padding: 12px; }
 }
 
