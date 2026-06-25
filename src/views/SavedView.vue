@@ -2,8 +2,9 @@
   <div class="saved-page">
     <header class="page-header">
       <div>
-        <p class="page-kicker">Saved News</p>
+        <p class="page-kicker">SAVED NEWS</p>
         <h1>저장한 뉴스</h1>
+        <p class="page-description">저장해 둔 뉴스를 다시 확인하고 관리할 수 있습니다.</p>
       </div>
       <span v-if="!isLoading && !errorMessage" class="saved-count">
         {{ savedItems.length }}개
@@ -166,17 +167,21 @@ onMounted(loadSavedNews);
   margin-bottom: 22px;
 }
 .page-kicker {
-  margin-bottom: 5px;
   color: var(--primary);
   font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  font-weight: 850;
+  text-transform: uppercase;
+  margin-bottom: 4px;
 }
 .page-header h1 {
   color: var(--text1);
   font-size: 24px;
-  font-weight: 850;
-  letter-spacing: -0.5px;
+  line-height: 1.25;
+}
+.page-description {
+  color: var(--text3);
+  font-size: 12.5px;
+  margin-top: 6px;
 }
 .saved-count {
   padding: 6px 10px;

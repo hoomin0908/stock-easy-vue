@@ -3,7 +3,7 @@
     <section class="terms-content">
       <header class="view-heading">
         <div>
-          <p class="eyebrow">Glossary</p>
+          <p class="eyebrow">DICTIONARY</p>
           <h1>용어사전</h1>
           <p class="view-description">저장한 투자 용어와 설명을 확인할 수 있습니다.</p>
         </div>
@@ -188,11 +188,12 @@ onMounted(loadSavedTerms);
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-  background: var(--bg2);
+  background: #eef2f7;
   padding: 24px;
 }
 .terms-content {
-  max-width: 920px;
+  width: 100%;
+  max-width: none;
   margin: 0 auto;
 }
 .view-heading {
@@ -221,17 +222,16 @@ onMounted(loadSavedTerms);
 }
 .term-count {
   flex-shrink: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--primary-border);
+  border-radius: 999px;
+  background: var(--primary-bg);
   color: var(--primary);
-  font-size: 12px;
-  font-weight: 850;
+  font-size: 11.5px;
+  font-weight: 750;
 }
 .terms-panel {
-  border: 1px solid var(--border);
-  border-top-color: var(--primary-border);
-  border-radius: var(--radius-lg);
-  background: var(--cream);
-  padding: 18px;
-  box-shadow: var(--panel-shadow);
+  background: transparent;
 }
 .state-box {
   min-height: 180px;
@@ -272,20 +272,32 @@ onMounted(loadSavedTerms);
   padding: 9px 14px;
 }
 .term-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 18px;
 }
 .term-card {
+  position: relative;
+  min-width: 0;
+  min-height: 172px;
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 18px;
+  gap: 16px;
   border: 1px solid var(--border);
-  border-left-color: var(--primary-border);
-  border-radius: var(--radius);
-  background: var(--bg2);
-  padding: 16px;
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 18px;
+  box-shadow: var(--panel-shadow);
+  cursor: default;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+.term-card:hover {
+  z-index: 2;
+  transform: translateY(-7px) scale(1.025);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.14);
 }
 .term-copy {
   flex: 1;
@@ -293,15 +305,15 @@ onMounted(loadSavedTerms);
 }
 .term-copy h2 {
   color: var(--text1);
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 850;
   line-height: 1.4;
 }
 .term-copy p {
   color: var(--text3);
-  font-size: 12.5px;
+  font-size: 13.5px;
   line-height: 1.65;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 .term-copy .source-news {
   max-width: 100%;
@@ -313,27 +325,29 @@ onMounted(loadSavedTerms);
   white-space: nowrap;
 }
 .term-actions {
-  flex-shrink: 0;
+  width: 100%;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
 }
 .news-btn,
 .delete-btn {
   padding: 8px 12px;
+  min-width: 68px;
 }
 .news-btn {
-  border: 1px solid var(--primary-border);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: transparent;
-  color: var(--primary);
+  background: #ffffff;
+  color: var(--text2);
   font-size: 12px;
   font-weight: 800;
   cursor: pointer;
 }
 .news-btn:hover {
-  border-color: var(--primary);
-  background: var(--primary-bg);
+  border-color: var(--primary-border);
+  color: var(--primary);
 }
 .retry-btn:hover {
   border-color: var(--primary);
@@ -368,11 +382,14 @@ onMounted(loadSavedTerms);
   .view-heading {
     align-items: flex-start;
   }
-  .term-card {
-    flex-direction: column;
-  }
   .term-actions {
     align-self: flex-end;
+  }
+}
+
+@media (max-width: 900px) {
+  .term-list {
+    grid-template-columns: 1fr;
   }
 }
 </style>
