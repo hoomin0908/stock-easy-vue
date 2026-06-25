@@ -1,5 +1,6 @@
 <template>
   <div class="news-card" :class="{ viewed: isViewed }" @click="goToDetail">
+    <span v-if="isViewed" class="viewed-label">읽음</span>
     <div class="card-body-layout">
       <div class="news-thumb-box">
         <img
@@ -179,30 +180,37 @@ const formattedTime = computed(() => {
 <style scoped>
 .news-card {
   position: relative;
-  background: var(--cream);
+  background: #ffffff;
   border: 1px solid var(--border);
-  border-radius: 16px; padding: 18px;
-  transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease; cursor: pointer;
+  border-radius: 16px;
+  padding: 18px;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+  cursor: pointer;
   container-type: inline-size;
   box-shadow: var(--panel-shadow);
 }
-.news-card::before {
-  content: "";
+.viewed-label {
   position: absolute;
-  left: 0;
-  top: 18px;
-  bottom: 18px;
-  width: 3px;
-  border-radius: 0 999px 999px 0;
-  background: linear-gradient(180deg, #ff8a1f, #ffd2a8);
+  top: 10px;
+  left: 12px;
+  z-index: 2;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(17, 24, 39, 0.72);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1;
 }
-.news-card.viewed {
-  background: var(--cream-soft);
-  border-color: var(--border);
+.news-card.viewed .card-body-layout {
+  opacity: 0.48;
+  filter: saturate(0.72);
 }
-.news-card.viewed::before { background: var(--border); }
-.news-card.viewed .news-title-link { color: var(--text2); }
-.news-card:hover { transform: translateY(-4px); box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08); border-color: var(--primary-border); }
+.news-card:hover {
+  z-index: 2;
+  transform: translateY(-7px) scale(1.035);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.14);
+}
 .news-card.active { border-color: var(--primary); background: var(--primary-bg); opacity: 1; box-shadow: inset 0 0 0 1px rgba(255,106,0,.12), 0 0 28px rgba(255,106,0,.08); }
 
 .card-body-layout { display: flex; gap: 20px; align-items: stretch; }
@@ -234,7 +242,18 @@ const formattedTime = computed(() => {
 
 .publisher-txt { font-weight: 650; color: var(--text2); }
 
-.news-title-link { font-size: clamp(15px, 2.2cqw, 20px); font-weight: 800; color: var(--text1); line-height: 1.45; margin-bottom: 8px; letter-spacing: -0.4px; }
+.news-title-link {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--text1);
+  font-size: clamp(15px, 2.2cqw, 20px);
+  font-weight: 800;
+  line-height: 1.45;
+  margin-bottom: 8px;
+  letter-spacing: -0.4px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .news-card:hover .news-title-link { color: var(--primary, #ff5a1f); }
 
 .news-author-row { display: flex; align-items: center; flex-wrap: wrap; margin-top: 6px; }
@@ -250,19 +269,8 @@ const formattedTime = computed(() => {
   border-color: #303743;
   box-shadow: none;
 }
-:global(.theme-dark) .news-card::before {
-  background: #ff8a1f;
-}
-:global(.theme-dark) .news-card.viewed {
-  background: #161a21;
-  border-color: #303743;
-}
-:global(.theme-dark) .news-card.viewed::before {
-  background: #354052;
-}
 :global(.theme-dark) .news-card:hover {
-  border-color: var(--primary-border);
-  box-shadow: none;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.32);
 }
 :global(.theme-dark) .news-thumb-box {
   border-color: #313b4d;

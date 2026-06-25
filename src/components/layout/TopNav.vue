@@ -2,18 +2,29 @@
   <nav class="top-nav">
     <div v-if="!route.meta.authPage" class="nav-tabs">
       <div ref="newsMenu" class="news-nav-menu">
-        <button
-          type="button"
+        <div
           class="nav-tab news-nav-trigger"
           :class="{ active: route.path.startsWith('/news') }"
-          :aria-expanded="isNewsMenuOpen"
-          @click="toggleNewsMenu"
         >
-          <span>뉴스</span>
-          <svg viewBox="0 0 24 24" :class="{ open: isNewsMenuOpen }" aria-hidden="true">
-            <polyline points="7 10 12 15 17 10" />
-          </svg>
-        </button>
+          <button
+            type="button"
+            class="news-nav-label"
+            @click="openAllNews"
+          >
+            뉴스
+          </button>
+          <button
+            type="button"
+            class="news-nav-arrow"
+            :aria-expanded="isNewsMenuOpen"
+            aria-label="뉴스 필터 메뉴"
+            @click="toggleNewsMenu"
+          >
+            <svg viewBox="0 0 24 24" :class="{ open: isNewsMenuOpen }" aria-hidden="true">
+              <polyline points="7 10 12 15 17 10" />
+            </svg>
+          </button>
+        </div>
 
         <div v-if="isNewsMenuOpen" class="news-filter-menu">
           <button
@@ -24,7 +35,6 @@
             :class="{ active: activeNewsFilter === filter.value }"
             @click="selectNewsFilter(filter.value)"
           >
-            <span class="filter-status-dot" :class="filter.dotClass"></span>
             <span>{{ filter.label }}</span>
           </button>
         </div>
@@ -107,10 +117,10 @@ const searchInput = ref(null);
 const newsMenu = ref(null);
 const isNewsMenuOpen = ref(false);
 const newsFilters = [
-  { label: "전체", value: "ALL", dotClass: "all" },
-  { label: "호재", value: "POSITIVE", dotClass: "positive" },
-  { label: "악재", value: "NEGATIVE", dotClass: "negative" },
-  { label: "중립", value: "NEUTRAL", dotClass: "neutral" },
+  { label: "전체", value: "ALL" },
+  { label: "호재", value: "POSITIVE" },
+  { label: "악재", value: "NEGATIVE" },
+  { label: "중립", value: "NEUTRAL" },
 ];
 
 const activeNewsFilter = computed(() => {
@@ -134,10 +144,14 @@ watch(
   { immediate: true }
 );
 
-async function toggleNewsMenu() {
+async function openAllNews() {
   if (route.path !== "/news" || Object.keys(route.query).length > 0) {
     await router.push({ path: "/news", query: {} });
   }
+  isNewsMenuOpen.value = false;
+}
+
+function toggleNewsMenu() {
   isNewsMenuOpen.value = !isNewsMenuOpen.value;
 }
 
@@ -230,13 +244,18 @@ onUnmounted(() => {
   top: 0;
   z-index: 100;
 }
-.nav-tabs { display: flex; height: 68px; }
+.nav-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 30px;
+  height: 68px;
+}
 .news-nav-menu { position: relative; display: flex; height: 68px; }
 .nav-tab {
   position: relative;
   display: flex;
   align-items: center;
-  padding: 0 20px;
+  padding: 0;
   font-size: 16px;
   font-weight: 650;
   color: var(--text3);
@@ -248,7 +267,26 @@ onUnmounted(() => {
   border: none;
   background: transparent;
   font-family: inherit;
+}
+.news-nav-label,
+.news-nav-arrow {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
   cursor: pointer;
+}
+.news-nav-label {
+  padding: 0;
+  font-weight: inherit;
+}
+.news-nav-arrow {
+  width: 20px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
 .news-nav-trigger svg {
   width: 14px;
@@ -264,8 +302,8 @@ onUnmounted(() => {
 .nav-tab::after {
   content: "";
   position: absolute;
-  left: 18px;
-  right: 18px;
+  left: 0;
+  right: 0;
   bottom: 0;
   height: 3px;
   border-radius: 999px 999px 0 0;
@@ -287,40 +325,36 @@ onUnmounted(() => {
 .news-filter-menu {
   position: absolute;
   top: 58px;
-  left: 8px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 120;
-  width: 150px;
-  padding: 8px;
+  width: 118px;
+  padding: 6px;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 12px;
   background: var(--cream);
   box-shadow: 0 14px 30px rgba(15, 23, 42, 0.14);
 }
 .news-filter-option {
   width: 100%;
-  min-height: 42px;
+  min-height: 34px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 11px;
+  justify-content: center;
+  padding: 7px 10px;
   border: none;
-  border-radius: 9px;
+  border-radius: 8px;
   background: transparent;
   color: var(--text2);
   font-family: inherit;
   font-size: 14px;
   font-weight: 650;
-  text-align: left;
+  text-align: center;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
 }
 .news-filter-option:hover { background: var(--bg2); color: var(--text1); }
 .news-filter-option.active { background: var(--primary-bg); color: var(--primary); font-weight: 800; }
-.filter-status-dot { width: 8px; height: 8px; flex-shrink: 0; border-radius: 50%; }
-.filter-status-dot.all { background: var(--primary); }
-.filter-status-dot.positive { background: #ef4444; }
-.filter-status-dot.negative { background: #2563eb; }
-.filter-status-dot.neutral { background: #64748b; }
 
 .nav-right { margin-left: auto; display: flex; align-items: center; gap: 10px; align-self: stretch; }
 .top-search-form {
