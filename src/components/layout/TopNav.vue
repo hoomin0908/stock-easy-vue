@@ -1,7 +1,34 @@
 <template>
   <nav class="top-nav">
     <div v-if="!route.meta.authPage" class="nav-tabs">
-      <router-link class="nav-tab" to="/news" active-class="active">뉴스</router-link>
+      <div ref="newsMenu" class="news-nav-menu">
+        <button
+          type="button"
+          class="nav-tab news-nav-trigger"
+          :class="{ active: route.path.startsWith('/news') }"
+          :aria-expanded="isNewsMenuOpen"
+          @click="toggleNewsMenu"
+        >
+          <span>뉴스</span>
+          <svg viewBox="0 0 24 24" :class="{ open: isNewsMenuOpen }" aria-hidden="true">
+            <polyline points="7 10 12 15 17 10" />
+          </svg>
+        </button>
+
+        <div v-if="isNewsMenuOpen" class="news-filter-menu">
+          <button
+            v-for="filter in newsFilters"
+            :key="filter.value"
+            type="button"
+            class="news-filter-option"
+            :class="{ active: activeNewsFilter === filter.value }"
+            @click="selectNewsFilter(filter.value)"
+          >
+            <span class="filter-status-dot" :class="filter.dotClass"></span>
+            <span>{{ filter.label }}</span>
+          </button>
+        </div>
+      </div>
       <router-link class="nav-tab" to="/glossary" active-class="active">용어사전</router-link>
       <router-link class="nav-tab" to="/saved" active-class="active">저장됨</router-link>
     </div>
@@ -64,7 +91,7 @@
 </template>
 
 <script setup>
-import { computed, inject, nextTick, ref, watch } from "vue";
+import { computed, inject, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuth } from "../../services/auth";
 
@@ -77,6 +104,21 @@ const toggleTheme = inject("toggleTheme", () => {});
 const isSearchOpen = ref(false);
 const searchKeyword = ref("");
 const searchInput = ref(null);
+const newsMenu = ref(null);
+const isNewsMenuOpen = ref(false);
+const newsFilters = [
+  { label: "전체", value: "ALL", dotClass: "all" },
+  { label: "호재", value: "POSITIVE", dotClass: "positive" },
+  { label: "악재", value: "NEGATIVE", dotClass: "negative" },
+  { label: "중립", value: "NEUTRAL", dotClass: "neutral" },
+];
+
+const activeNewsFilter = computed(() => {
+  const sentiment = String(route.query.sentiment || "").toUpperCase();
+  return newsFilters.some((filter) => filter.value === sentiment)
+    ? sentiment
+    : "ALL";
+});
 
 const loginLink = computed(() => ({
   path: "/login",
@@ -91,6 +133,27 @@ watch(
   },
   { immediate: true }
 );
+
+async function toggleNewsMenu() {
+  if (route.path !== "/news" || Object.keys(route.query).length > 0) {
+    await router.push({ path: "/news", query: {} });
+  }
+  isNewsMenuOpen.value = !isNewsMenuOpen.value;
+}
+
+async function selectNewsFilter(value) {
+  await router.push({
+    path: "/news",
+    query: value === "ALL" ? {} : { sentiment: value },
+  });
+  isNewsMenuOpen.value = false;
+}
+
+function handleDocumentClick(event) {
+  if (!newsMenu.value?.contains(event.target)) {
+    isNewsMenuOpen.value = false;
+  }
+}
 
 async function openSearch() {
   isSearchOpen.value = true;
@@ -145,6 +208,14 @@ async function handleLogout() {
     isLoggingOut.value = false;
   }
 }
+
+onMounted(() => {
+  document.addEventListener("click", handleDocumentClick);
+});
+
+onUnmounted(() => {
+  document.removeEventListener("click", handleDocumentClick);
+});
 </script>
 
 <style scoped>
@@ -160,17 +231,36 @@ async function handleLogout() {
   z-index: 100;
 }
 .nav-tabs { display: flex; height: 68px; }
+.news-nav-menu { position: relative; display: flex; height: 68px; }
 .nav-tab {
   position: relative;
   display: flex;
   align-items: center;
   padding: 0 20px;
-  font-size: 13.5px;
+  font-size: 16px;
   font-weight: 650;
   color: var(--text3);
   white-space: nowrap;
   transition: all 0.15s ease;
 }
+.news-nav-trigger {
+  gap: 5px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+}
+.news-nav-trigger svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.18s ease;
+}
+.news-nav-trigger svg.open { transform: rotate(180deg); }
 .nav-tab::after {
   content: "";
   position: absolute;
@@ -194,6 +284,43 @@ async function handleLogout() {
   opacity: 1;
   transform: translateY(0) scaleX(1);
 }
+.news-filter-menu {
+  position: absolute;
+  top: 58px;
+  left: 8px;
+  z-index: 120;
+  width: 150px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--cream);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.14);
+}
+.news-filter-option {
+  width: 100%;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text2);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.news-filter-option:hover { background: var(--bg2); color: var(--text1); }
+.news-filter-option.active { background: var(--primary-bg); color: var(--primary); font-weight: 800; }
+.filter-status-dot { width: 8px; height: 8px; flex-shrink: 0; border-radius: 50%; }
+.filter-status-dot.all { background: var(--primary); }
+.filter-status-dot.positive { background: #ef4444; }
+.filter-status-dot.negative { background: #2563eb; }
+.filter-status-dot.neutral { background: #64748b; }
 
 .nav-right { margin-left: auto; display: flex; align-items: center; gap: 10px; align-self: stretch; }
 .top-search-form {
