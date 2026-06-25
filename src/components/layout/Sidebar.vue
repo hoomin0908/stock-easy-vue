@@ -274,9 +274,13 @@ const isRecommendedThemesLoading = ref(false);
 const recommendedThemesError = ref("");
 let searchTimer = null;
 
-const displayStocks = computed(() => stocks.value);
 const registeredStockIds = computed(
-  () => new Set(interestStocks.value.map((interest) => interest.stock.id))
+  () => new Set(interestStocks.value.map((interest) => String(interest.stock.id)))
+);
+const displayStocks = computed(() =>
+  stocks.value.filter(
+    (stock) => !registeredStockIds.value.has(String(stock.id))
+  )
 );
 
 const userDisplayName = computed(() => {
@@ -517,7 +521,7 @@ async function loadStocks() {
 }
 
 function isRegisteredStock(stockId) {
-  return registeredStockIds.value.has(stockId);
+  return registeredStockIds.value.has(String(stockId));
 }
 
 async function addInterestStock(stock) {
