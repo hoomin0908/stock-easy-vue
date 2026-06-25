@@ -30,6 +30,30 @@
           <span class="author-txt" v-if="news.author">{{ news.author }}</span>
 
           <div class="detail-actions">
+            <div class="news-save-action">
+              <button
+                type="button"
+                class="news-save-btn"
+                :class="{ saved: isNewsSaved }"
+                :disabled="isSavingNews"
+                :title="isNewsSaved ? '뉴스 저장 취소' : '뉴스 저장'"
+                :aria-label="isNewsSaved ? '뉴스 저장 취소' : '뉴스 저장'"
+                @click="handleToggleSavedNews"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M6 4.75A1.75 1.75 0 0 1 7.75 3h8.5A1.75 1.75 0 0 1 18 4.75V21l-6-3.75L6 21V4.75Z" />
+                </svg>
+                <span>{{ isSavingNews ? "저장 중" : isNewsSaved ? "저장됨" : "저장" }}</span>
+              </button>
+              <p
+                v-if="newsSaveMessage"
+                class="news-save-message"
+                :class="{ error: newsSaveMessageType === 'error' }"
+              >
+                {{ newsSaveMessage }}
+              </p>
+            </div>
+
             <button
               v-if="analysis"
               type="button"
@@ -474,6 +498,9 @@ import {
   fetchSavedTerms,
   saveTerm,
   deleteSavedTerm,
+  createSavedNews,
+  fetchSavedNews,
+  deleteSavedNews,
 } from "../services/api";
 import { useAuth } from "../services/auth";
 
@@ -500,6 +527,11 @@ const savedTerms = ref([]);
 const savingTermNames = ref(new Set());
 const termSaveErrors = ref({});
 const randomSavedTerm = ref(null);
+const isSavingNews = ref(false);
+const isNewsSaved = ref(false);
+const savedNewsId = ref(null);
+const newsSaveMessage = ref("");
+const newsSaveMessageType = ref("success");
 const SAVED_TERMS_KEY = "stockeasy-saved-terms";
 
 const toggleWatchlist = inject("toggleWatchlist");
@@ -681,6 +713,96 @@ function closeAiReport() {
 
 function handleReportKeydown(event) {
   if (event.key === "Escape" && showAiReport.value) closeAiReport();
+}
+
+function normalizeSavedNews(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.results)) return data.results;
+  return [];
+}
+
+async function syncSavedNewsState() {
+  const newsId = news.value?.id ?? route.params.id;
+  if (!newsId || !isAuthenticated.value) {
+    isNewsSaved.value = false;
+    savedNewsId.value = null;
+    return null;
+  }
+
+  try {
+    const { data } = await fetchSavedNews();
+    const savedItem = normalizeSavedNews(data).find(
+      (item) => String(item.news?.id) === String(newsId)
+    );
+
+    isNewsSaved.value = Boolean(savedItem);
+    savedNewsId.value = savedItem?.id ?? null;
+    return savedItem ?? null;
+  } catch (error) {
+    console.error("저장 뉴스 상태 조회 실패", error);
+    isNewsSaved.value = false;
+    savedNewsId.value = null;
+    return null;
+  }
+}
+
+async function handleToggleSavedNews() {
+  const newsId = news.value?.id ?? route.params.id;
+  if (!newsId || isSavingNews.value) return;
+
+  newsSaveMessage.value = "";
+
+  if (!isAuthenticated.value) {
+    newsSaveMessageType.value = "error";
+    newsSaveMessage.value = "로그인이 필요합니다.";
+    return;
+  }
+
+  isSavingNews.value = true;
+
+  try {
+    if (isNewsSaved.value) {
+      if (!savedNewsId.value) {
+        newsSaveMessageType.value = "error";
+        newsSaveMessage.value = "저장 정보를 확인하지 못했습니다.";
+        return;
+      }
+
+      await deleteSavedNews(savedNewsId.value);
+      isNewsSaved.value = false;
+      savedNewsId.value = null;
+      newsSaveMessageType.value = "success";
+      newsSaveMessage.value = "뉴스 저장을 취소했습니다.";
+    } else {
+      const { data } = await createSavedNews(newsId);
+      isNewsSaved.value = true;
+      savedNewsId.value = data?.id ?? null;
+      newsSaveMessageType.value = "success";
+      newsSaveMessage.value = "뉴스를 저장했습니다.";
+    }
+  } catch (error) {
+    const detail = error.response?.data?.detail;
+
+    if (detail === "이미 저장된 뉴스입니다.") {
+      const savedItem = await syncSavedNewsState();
+      if (savedItem) {
+        newsSaveMessageType.value = "success";
+        newsSaveMessage.value = "이미 저장된 뉴스입니다.";
+      } else {
+        newsSaveMessageType.value = "error";
+        newsSaveMessage.value = "저장 상태를 확인하지 못했습니다.";
+      }
+    } else {
+      newsSaveMessageType.value = "error";
+      newsSaveMessage.value =
+        detail ||
+        (error.response?.status === 401 || error.response?.status === 403
+          ? "로그인이 필요합니다."
+          : "뉴스를 저장하지 못했습니다.");
+    }
+  } finally {
+    isSavingNews.value = false;
+  }
 }
 
 function getTermName(term) {
@@ -877,6 +999,7 @@ async function loadDetail() {
   try {
     const { data } = await fetchNewsDetail(route.params.id);
     news.value = data;
+    await syncSavedNewsState();
     console.log("🔍 [디테일 데이터 디버깅 로거]:", data);
   } catch (e) {
     console.error("데이터 로드 실패", e);
@@ -895,6 +1018,11 @@ onMounted(() => {
 
 watch(() => route.params.id, () => {
   closeAiReport();
+  isNewsSaved.value = false;
+  savedNewsId.value = null;
+  isSavingNews.value = false;
+  newsSaveMessage.value = "";
+  newsSaveMessageType.value = "success";
   cancelEditing();
   commentContent.value = "";
   commentMutationError.value = "";
@@ -1162,6 +1290,16 @@ function inferCompanyNamesFromTitle(title) {
 .action-bar-row { display: flex; justify-content: space-between; align-items: center; font-size: 13.5px; color: var(--text2); margin-top: 4px; }
 .author-txt { min-height: 20px; display: inline-flex; align-items: center; color: var(--text2); }
 .detail-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.news-save-action { position: relative; display: flex; flex-direction: column; align-items: flex-end; }
+.news-save-btn { min-height: 38px; display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border: 1px solid var(--border); border-radius: 999px; background: var(--cream); color: var(--text2); font-size: 12px; font-weight: 750; cursor: pointer; transition: all 0.15s ease; }
+.news-save-btn:hover { border-color: var(--primary-border); background: var(--primary-bg); color: var(--primary); }
+.news-save-btn.saved { border-color: var(--primary); background: var(--primary); color: #fff; }
+.news-save-btn:disabled { cursor: not-allowed; }
+.news-save-btn:not(.saved):disabled { opacity: 0.55; }
+.news-save-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+.news-save-btn.saved svg { fill: currentColor; }
+.news-save-message { position: absolute; top: calc(100% + 6px); right: 0; z-index: 3; width: max-content; max-width: 220px; padding: 5px 8px; border: 1px solid var(--primary-border); border-radius: 6px; background: var(--primary-bg); color: var(--primary); font-size: 10.5px; line-height: 1.35; box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08); }
+.news-save-message.error { border-color: #fecdd3; background: #fff1f2; color: #dc2626; }
 .report-open-btn { display: inline-flex; align-items: center; gap: 10px; padding: 11px 18px; border: 1px solid transparent; border-radius: 999px; background: linear-gradient(90deg, #ff5300, #ff9800); color: #ffffff; font-size: 12.5px; font-weight: 850; cursor: pointer; box-shadow: 0 0 28px rgba(255, 106, 0, 0.3); transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease; }
 .report-open-btn:hover { transform: translateY(-1px); background: var(--primary-hover, #e94f18); box-shadow: 0 9px 22px rgba(255, 90, 31, 0.24); }
 .report-open-btn span { font-size: 15px; transition: transform 0.15s ease; }
