@@ -537,10 +537,10 @@ const SAVED_TERMS_KEY = "stockeasy-saved-terms";
 const toggleWatchlist = inject("toggleWatchlist");
 const isWatched = inject("isWatched");
 
-const activeTab = ref("youtube");
+const activeTab = ref("map");
 const tabs = [
-  { id: "youtube", label: "관련 유튜브" },
   { id: "map", label: "카카오맵" },
+  { id: "youtube", label: "관련 유튜브" },
   { id: "community", label: "실시간 토론" }
 ];
 
