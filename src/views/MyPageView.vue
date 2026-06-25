@@ -388,7 +388,7 @@ onMounted(() => {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-  background: #eef2f7;
+  background: var(--bg3);
   padding: 24px;
 }
 .content-section {
@@ -482,7 +482,7 @@ onMounted(() => {
   position: relative;
   border: 1px solid var(--border);
   border-radius: 16px;
-  background: #ffffff;
+  background: var(--cream);
   min-height: 154px;
   padding: 0;
   text-align: left;
@@ -495,7 +495,7 @@ onMounted(() => {
   z-index: 2;
   transform: translateY(-5px) scale(1.015);
   border-color: var(--border);
-  background: #ffffff;
+  background: var(--cream);
   box-shadow: 0 18px 42px rgba(15, 23, 42, 0.14);
 }
 .stock-card-main {
@@ -545,7 +545,7 @@ onMounted(() => {
   cursor: pointer;
   transition: all 0.15s ease;
 }
-.heart-btn:hover { background: #fff1f2; color: #fb7185; }
+.heart-btn:hover { background: var(--danger-bg); color: #fb7185; }
 .heart-btn svg { width: 17px; height: 17px; fill: transparent; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 .heart-btn.active { color: var(--primary); }
 .heart-btn.active svg { fill: currentColor; stroke: currentColor; }
@@ -609,7 +609,7 @@ onMounted(() => {
   flex-direction: column;
   border: 1px solid var(--border);
   border-radius: 16px;
-  background: #ffffff;
+  background: var(--cream);
   padding: 18px;
   box-shadow: var(--panel-shadow);
   transition: transform 0.22s ease, box-shadow 0.22s ease;
@@ -644,7 +644,7 @@ onMounted(() => {
   margin-top: 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: #ffffff;
+  background: var(--cream);
   color: var(--primary);
   padding: 8px 10px;
   font-size: 12px;
@@ -652,8 +652,8 @@ onMounted(() => {
   cursor: pointer;
 }
 .more-toggle-btn:hover {
-  border-color: #cbd5e1;
-  background: #ffffff;
+  border-color: var(--border);
+  background: var(--bg2);
 }
 .field-label {
   display: flex;
@@ -681,7 +681,7 @@ onMounted(() => {
   cursor: not-allowed;
 }
 .field-label input:focus {
-  border-color: #cbd5e1;
+  border-color: var(--border);
   box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.12);
 }
 .form-message {
@@ -703,7 +703,7 @@ onMounted(() => {
   margin-top: 14px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: #ffffff;
+  background: var(--cream);
   color: var(--primary);
   padding: 10px 13px;
   font-size: 12px;
@@ -711,8 +711,8 @@ onMounted(() => {
   cursor: pointer;
 }
 .primary-btn:hover:not(:disabled) {
-  border-color: #cbd5e1;
-  background: #ffffff;
+  border-color: var(--border);
+  background: var(--bg2);
 }
 .primary-btn:disabled {
   opacity: 0.55;

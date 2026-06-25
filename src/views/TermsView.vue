@@ -185,7 +185,7 @@ onMounted(loadSavedTerms);
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-  background: #eef2f7;
+  background: var(--bg3);
   padding: 24px;
 }
 .terms-content {
@@ -285,7 +285,7 @@ onMounted(loadSavedTerms);
   gap: 12px;
   border: 1px solid var(--border);
   border-radius: 16px;
-  background: #ffffff;
+  background: var(--cream);
   padding: 18px;
   box-shadow: var(--panel-shadow);
   cursor: default;
@@ -327,7 +327,7 @@ onMounted(loadSavedTerms);
 .news-btn {
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: #ffffff;
+  background: var(--cream);
   color: var(--text2);
   font-size: 12px;
   font-weight: 800;
