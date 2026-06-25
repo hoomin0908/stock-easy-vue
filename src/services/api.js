@@ -46,6 +46,21 @@ export function fetchNewsDetail(newsId) {
   return api.get(`/news/${newsId}/`);
 }
 
+// GET /api/v1/news/saved/ → 저장 뉴스 조회
+export function fetchSavedNews() {
+  return api.get("/news/saved/");
+}
+
+// POST /api/v1/news/saved/ → 뉴스 저장
+export function createSavedNews(newsId) {
+  return api.post("/news/saved/", { news_id: newsId });
+}
+
+// DELETE /api/v1/news/saved/:savedNewsId/ → 저장 뉴스 삭제
+export function deleteSavedNews(savedNewsId) {
+  return api.delete(`/news/saved/${savedNewsId}/`);
+}
+
 // GET /api/v1/stocks/  → 관심종목 후보 검색/목록
 export function fetchStocks(params = {}) {
   // TODO: 팀원 API 연동

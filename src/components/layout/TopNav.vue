@@ -3,6 +3,7 @@
     <div v-if="!route.meta.authPage" class="nav-tabs">
       <router-link class="nav-tab" to="/news" active-class="active">뉴스</router-link>
       <router-link class="nav-tab" to="/glossary" active-class="active">용어사전</router-link>
+      <router-link class="nav-tab" to="/saved" active-class="active">저장됨</router-link>
     </div>
 
     <div class="nav-right">
