@@ -43,31 +43,32 @@
 
           <section class="data-panel">
             <div class="panel-title-row">
-              <h2>최근 본 뉴스</h2>
-              <span>{{ recentNews.length }}개</span>
+              <h2>저장한 뉴스</h2>
+              <span>{{ savedNews.length }}개</span>
             </div>
-            <div v-if="recentNews.length === 0" class="compact-state">최근 본 뉴스가 없습니다.</div>
+            <div v-if="isSavedNewsLoading" class="compact-state">저장한 뉴스를 불러오는 중입니다...</div>
+            <div v-else-if="savedNews.length === 0" class="compact-state">저장한 뉴스가 없습니다.</div>
             <div v-else class="recent-news-list">
               <router-link
-                v-for="news in visibleRecentNews"
-                :key="news.id"
+                v-for="item in visibleSavedNews"
+                :key="item.id"
                 class="recent-news-row"
-                :to="`/news/${news.id}`"
+                :to="`/news/${item.news.id}`"
               >
                 <div>
-                  <strong>{{ news.title }}</strong>
-                  <small>{{ news.publisher || "언론사 정보 없음" }} · {{ formatViewedAt(news.viewedAt) }}</small>
+                  <strong>{{ item.news.title }}</strong>
+                  <small>{{ item.news.publisher || "언론사 정보 없음" }} · {{ formatSavedAt(item.created_at) }}</small>
                 </div>
                 <span>보기</span>
               </router-link>
             </div>
             <button
-              v-if="recentNews.length > 3"
+              v-if="savedNews.length > 3"
               type="button"
               class="more-toggle-btn"
-              @click="showAllRecentNews = !showAllRecentNews"
+              @click="showAllSavedNews = !showAllSavedNews"
             >
-              {{ showAllRecentNews ? "접기" : `더보기 ${recentNews.length - 3}개` }}
+              {{ showAllSavedNews ? "접기" : `더보기 ${savedNews.length - 3}개` }}
             </button>
           </section>
 
@@ -139,9 +140,8 @@
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAuth } from "../services/auth";
-import { fetchInterestStocks, fetchSavedTerms } from "../services/api";
+import { fetchInterestStocks, fetchSavedNews, fetchSavedTerms } from "../services/api";
 
-const RECENT_NEWS_KEY = "stockeasy-recent-news";
 const SAVED_TERMS_KEY = "stockeasy-saved-terms";
 
 const router = useRouter();
@@ -149,12 +149,13 @@ const { currentUser, updateProfile } = useAuth();
 
 const interestStocks = ref([]);
 const savedTerms = ref([]);
-const recentNews = ref([]);
+const savedNews = ref([]);
 const isInterestsLoading = ref(false);
 const isTermsLoading = ref(false);
+const isSavedNewsLoading = ref(false);
 const showAllInterests = ref(false);
 const showAllTerms = ref(false);
-const showAllRecentNews = ref(false);
+const showAllSavedNews = ref(false);
 
 const profileForm = reactive({ email: "", nickname: "", password: "" });
 const isProfileSaving = ref(false);
@@ -167,8 +168,8 @@ const visibleInterestStocks = computed(() =>
 const visibleSavedTerms = computed(() =>
   showAllTerms.value ? savedTerms.value : savedTerms.value.slice(0, 2)
 );
-const visibleRecentNews = computed(() =>
-  showAllRecentNews.value ? recentNews.value : recentNews.value.slice(0, 3)
+const visibleSavedNews = computed(() =>
+  showAllSavedNews.value ? savedNews.value : savedNews.value.slice(0, 3)
 );
 
 function normalizeList(data) {
@@ -224,8 +225,23 @@ async function loadSavedTerms() {
   }
 }
 
-function loadRecentNews() {
-  recentNews.value = readLocalList(RECENT_NEWS_KEY).slice(0, 10);
+async function loadSavedNews() {
+  isSavedNewsLoading.value = true;
+
+  try {
+    const { data } = await fetchSavedNews();
+    savedNews.value = normalizeList(data)
+      .filter((item) => item?.news?.id)
+      .sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+  } catch (error) {
+    console.error("마이페이지 저장 뉴스 조회 실패", error);
+    savedNews.value = [];
+  } finally {
+    isSavedNewsLoading.value = false;
+  }
 }
 
 function readLocalList(key) {
@@ -255,8 +271,8 @@ function mergeTerms(primary, secondary) {
   return merged;
 }
 
-function formatViewedAt(value) {
-  if (!value) return "최근";
+function formatSavedAt(value) {
+  if (!value) return "저장됨";
   const diffMin = Math.floor((Date.now() - new Date(value).getTime()) / 60000);
   if (diffMin < 1) return "방금 전";
   if (diffMin < 60) return `${diffMin}분 전`;
@@ -328,7 +344,7 @@ watch(
 onMounted(() => {
   loadInterestStocks();
   loadSavedTerms();
-  loadRecentNews();
+  loadSavedNews();
 });
 </script>
 
