@@ -1,6 +1,6 @@
 <template>
-  <div class="news-card" :class="{ viewed: isViewed }" @click="goToDetail">
-    <span v-if="isViewed" class="viewed-label">읽음</span>
+  <div class="news-card" :class="{ viewed: shouldShowViewedState }" @click="goToDetail">
+    <span v-if="shouldShowViewedState" class="viewed-label">읽음</span>
     <div class="card-body-layout">
       <div class="news-thumb-box">
         <img
@@ -42,6 +42,10 @@
             원문 보기
           </a>
         </div>
+
+        <div v-if="$slots.footer" class="news-card-footer">
+          <slot name="footer"></slot>
+        </div>
       </div>
     </div>
   </div>
@@ -56,6 +60,10 @@ const props = defineProps({
   news: {
     type: Object,
     required: true
+  },
+  showViewedState: {
+    type: Boolean,
+    default: true
   }
 });
 
@@ -69,6 +77,7 @@ const usesPlaceholder = computed(
   () => !props.news.thumbnail_url || thumbnailFailed.value
 );
 const isViewed = computed(() => viewedNewsIds.value.has(String(props.news.id)));
+const shouldShowViewedState = computed(() => props.showViewedState && isViewed.value);
 
 function handleThumbnailError(event) {
   thumbnailFailed.value = true;
@@ -263,6 +272,12 @@ const formattedTime = computed(() => {
 .origin-link-btn { display: inline-flex; align-items: center; gap: 4px; font-size: clamp(11.5px, 1.6cqw, 13.5px); color: var(--text3, #94a3b8); text-decoration: none; transition: color 0.15s ease; font-weight: 500; }
 .origin-link-btn:hover { color: var(--primary); }
 .link-icon { width: 13px; height: 13px; stroke: currentColor; stroke-width: 2; fill: none; }
+.news-card-footer {
+  margin-top: 7px;
+  color: var(--text3);
+  font-size: clamp(11px, 1.5cqw, 12.5px);
+  font-weight: 500;
+}
 
 :global(.theme-dark) .news-card {
   background: #111318;
