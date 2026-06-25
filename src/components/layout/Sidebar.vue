@@ -691,14 +691,14 @@ onBeforeUnmount(() => {
 
 .company-list-card { min-height: 60px; display: flex; align-items: center; gap: 8px; padding: 10px 7px 10px 12px; border: 1px solid transparent; border-radius: var(--radius); background: transparent; transition: all 0.15s ease; }
 .company-list-card:hover { background: var(--bg2); border-color: var(--border); }
-.company-list-card.filter-active { border-color: var(--primary); background: var(--primary-bg); }
+.company-list-card.filter-active { border-color: transparent; background: transparent; }
 .company-card-main { flex: 1; min-width: 0; align-self: stretch; display: flex; align-items: center; padding: 0; border: none; background: transparent; cursor: pointer; font: inherit; }
 .company-card-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; text-align: left; }
 .company-card-info strong { overflow: hidden; color: var(--text1); font-size: 14px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
 .company-card-info small { color: var(--text3); font-size: 12px; line-height: 1.1; }
 .interest-sector-row { display: flex; align-items: center; gap: 6px; border: 1px solid transparent; border-radius: var(--radius); padding: 2px 5px 2px 0; transition: background 0.15s ease, border-color 0.15s ease; }
 .interest-sector-row:hover { background: var(--bg2); border-color: var(--border); }
-.interest-sector-row.active { background: var(--primary-bg); border-color: var(--primary-border); }
+.interest-sector-row.active { background: transparent; border-color: transparent; }
 .interest-sector-row.active .luxury-sector-chip { color: var(--primary); font-weight: 600; }
 .interest-sector-chip { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; border-color: transparent !important; background: transparent !important; }
 .interest-sector-chip strong { max-width: 100%; overflow: hidden; color: var(--text1); font-size: 14px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
@@ -732,7 +732,7 @@ onBeforeUnmount(() => {
 .sector-grid-layout { display: flex; flex-direction: column; gap: 4px; text-align: left; }
 .luxury-sector-chip { width: 100%; padding: 11px 12px; border-radius: var(--radius); border: 1px solid transparent; background: transparent; color: var(--text1); cursor: pointer; font: inherit; font-size: 14px; font-weight: 650; line-height: 1.35; text-align: left; transition: all 0.15s ease; }
 .luxury-sector-chip:hover { background: var(--bg2); color: var(--text1); }
-.luxury-sector-chip.active { background: var(--primary-bg); color: var(--primary); border-color: var(--primary-border); font-weight: 600; }
+.luxury-sector-chip.active { background: transparent; color: var(--primary); border-color: transparent; font-weight: 600; }
 .sidebar-footer { border-top: 1px solid var(--border); padding: 14px 12px; margin-top: auto; }
 .user-row-card { display: flex; align-items: center; gap: 10px; }
 .user-avatar-circle { width: 36px; height: 36px; border: none; border-radius: 50%; flex-shrink: 0; background: var(--primary); color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(255, 90, 31, 0.2); cursor: pointer; }
