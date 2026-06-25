@@ -151,7 +151,7 @@ onMounted(loadSavedNews);
   flex: 1;
   overflow-y: auto;
   padding: 24px;
-  background: #eef2f7;
+  background: var(--bg3);
 }
 .saved-page > * {
   width: 100%;
@@ -212,7 +212,7 @@ onMounted(loadSavedNews);
   padding: 17px;
   border: 1px solid var(--border);
   border-radius: 16px;
-  background: linear-gradient(180deg, #ffffff 0%, #fffdfb 100%);
+  background: linear-gradient(180deg, var(--cream) 0%, var(--bg2) 100%);
   cursor: pointer;
   outline: none;
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
@@ -234,7 +234,7 @@ onMounted(loadSavedNews);
   transition: color 0.15s ease, background 0.15s ease;
 }
 .delete-btn:hover {
-  background: #fff1f2;
+  background: var(--danger-bg);
   color: #dc2626;
 }
 .delete-btn:disabled {

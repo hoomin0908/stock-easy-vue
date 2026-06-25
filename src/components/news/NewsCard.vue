@@ -189,7 +189,7 @@ const formattedTime = computed(() => {
 <style scoped>
 .news-card {
   position: relative;
-  background: #ffffff;
+  background: var(--cream);
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 18px;
@@ -220,7 +220,7 @@ const formattedTime = computed(() => {
   transform: translateY(-7px) scale(1.035);
   box-shadow: 0 18px 42px rgba(15, 23, 42, 0.14);
 }
-.news-card.active { border-color: var(--primary); background: #ffffff; opacity: 1; box-shadow: var(--panel-shadow); }
+.news-card.active { border-color: var(--primary); background: var(--cream); opacity: 1; box-shadow: var(--panel-shadow); }
 .news-card.active.viewed .card-body-layout {
   opacity: 1;
   filter: none;

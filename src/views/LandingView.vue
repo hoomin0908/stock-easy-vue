@@ -225,7 +225,7 @@ onMounted(async () => {
 }
 
 .btn-secondary {
-  background: #fff;
+  background: var(--cream);
   color: var(--text1);
   border: 2px solid var(--border);
 }
