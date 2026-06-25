@@ -135,7 +135,7 @@
                   <p class="term-explanation-txt">{{ getTermExplanation(tm) }}</p>
                   <p v-if="getTermSaveError(tm)" class="term-save-error">
                     {{ getTermSaveError(tm) }}
-                  </p>
+                  </p> 
                 </div>
               </details>
             </div>
@@ -537,10 +537,10 @@ const SAVED_TERMS_KEY = "stockeasy-saved-terms";
 const toggleWatchlist = inject("toggleWatchlist");
 const isWatched = inject("isWatched");
 
-const activeTab = ref("youtube");
+const activeTab = ref("map");
 const tabs = [
-  { id: "youtube", label: "관련 유튜브" },
   { id: "map", label: "카카오맵" },
+  { id: "youtube", label: "관련 유튜브" },
   { id: "community", label: "실시간 토론" }
 ];
 
@@ -1366,18 +1366,18 @@ function inferCompanyNamesFromTitle(title) {
 .tab-btn { flex: 1; border: none; background: transparent; padding: 10px 0; font-size: 13px; font-weight: 700; color: var(--text2); border-radius: 999px; cursor: pointer; transition: all 0.15s ease; }
 .tab-btn:hover { color: var(--primary, #ff5a1f); }
 .tab-btn.active { background: var(--cream); color: var(--primary); font-weight: 850; box-shadow: inset 0 0 0 1px var(--primary-border), 0 4px 12px rgba(15, 23, 42, 0.05); }
-.widget-content-body { background: var(--cream); border: 1px solid var(--primary-border); border-radius: 16px; padding: 20px; min-height: 420px; display: flex; flex-direction: column; margin-top: 14px; overflow: hidden; }
+.widget-content-body { background: var(--cream); border: 1px solid var(--primary-border); border-radius: 16px; padding: 20px; min-height: 500px; display: flex; flex-direction: column; margin-top: 14px; overflow: hidden; }
 .pane-title-info { margin-bottom: 16px; }
 .pane-title-info h4 { font-size: 11px; font-weight: 800; color: var(--text3); letter-spacing: 0.04em; margin: 0 0 2px 0; }
 .pane-title-info p { font-size: 12px; color: var(--text2); margin: 0; }
 .pane-title-info p span { color: var(--primary, #ff5a1f); font-weight: 700; }
-.tab-pane-view { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.tab-pane-view { display: flex; flex-direction: column; flex: 1; min-height: 458px; justify-content: flex-start; }
 .pane-component-scroller { flex: 1; overflow-y: auto; overflow-x: hidden; padding-right: 2px; }
 .youtube-pane .pane-component-scroller { display: flex; min-height: 420px; }
 .pane-component-scroller::-webkit-scrollbar { width: 4px; }
 .pane-component-scroller::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
 .empty-pane-box { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 12.5px; color: var(--text3); border: 1px dashed var(--border); border-radius: 8px; }
-.community-chat-container { flex: 1; display: flex; flex-direction: column; justify-content: space-between; min-height: 300px; }
+.community-chat-container { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: space-between; min-height: 0; }
 .chat-scroller { flex: 1; min-height: 280px; display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; max-height: 320px; overflow-y: auto; }
 .comment-state { flex: 1; min-height: 260px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 12px; color: var(--text3); font-size: 12.5px; text-align: center; }
 .comment-state.error { color: #dc2626; }

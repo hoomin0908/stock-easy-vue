@@ -25,29 +25,55 @@
       </button>
     </div>
 
-    <div v-else class="video-grid">
-      <div v-for="video in videos" :key="video.id.videoId" class="video-card">
-        <div class="video-thumbnail-wrapper">
-          <a :href="`https://www.youtube.com/watch?v=${video.id.videoId}`" target="_blank">
-            <img 
-              :src="`https://img.youtube.com/vi/${video.id.videoId}/maxresdefault.jpg`" 
-              :alt="video.snippet.title" 
-              class="thumbnail-img"
+    <div v-else class="video-browser">
+      <section v-if="selectedVideo" class="selected-video-card">
+        <div class="video-player">
+          <iframe
+            :key="selectedVideo.id.videoId"
+            :src="selectedVideoEmbedUrl"
+            :title="selectedVideo.snippet.title"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+          ></iframe>
+        </div>
+
+        <div class="selected-video-info">
+          <h3 v-html="selectedVideo.snippet.title"></h3>
+          <p v-if="selectedVideo.snippet.channelTitle">
+            {{ selectedVideo.snippet.channelTitle }}
+          </p>
+        </div>
+      </section>
+
+      <div class="video-carousel" aria-label="관련 유튜브 영상 목록">
+        <button
+          v-for="video in videos"
+          :key="video.id.videoId"
+          type="button"
+          class="video-select-card"
+          :class="{ active: isSelectedVideo(video) }"
+          :aria-pressed="isSelectedVideo(video)"
+          @click="selectVideo(video)"
+        >
+          <span class="carousel-thumbnail">
+            <img
+              :src="video.snippet.thumbnails?.medium?.url || `https://img.youtube.com/vi/${video.id.videoId}/mqdefault.jpg`"
+              :alt="video.snippet.title"
             />
-            <div class="play-icon">▶</div>
-          </a>
-        </div>
-        <div class="video-info">
-          <h4 class="video-title" v-html="video.snippet.title"></h4>
-          <p class="channel-title">{{ video.snippet.channelTitle }}</p>
-        </div>
+            <span class="play-badge" aria-hidden="true">▶</span>
+          </span>
+          <span class="carousel-video-info">
+            <strong v-html="video.snippet.title"></strong>
+            <small>{{ video.snippet.channelTitle }}</small>
+          </span>
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from "vue";
+import { computed, ref, watch, onMounted } from "vue";
 import axios from "axios";
 
 const props = defineProps({
@@ -55,8 +81,14 @@ const props = defineProps({
 });
 
 const videos = ref([]);
+const selectedVideo = ref(null);
 const isLoading = ref(false);
 const errorMessage = ref("");
+
+const selectedVideoEmbedUrl = computed(() => {
+  const videoId = selectedVideo.value?.id?.videoId;
+  return videoId ? `https://www.youtube.com/embed/${videoId}` : "";
+});
 
 async function fetchYoutubeVideos(query) {
   const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
@@ -68,7 +100,7 @@ async function fetchYoutubeVideos(query) {
 
   try {
     const response = await axios.get(url, {
-      params: { key: API_KEY, q: query, part: "snippet", type: "video", maxResults: 3, regionCode: "KR", safeSearch: "moderate" }
+      params: { key: API_KEY, q: query, part: "snippet", type: "video", maxResults: 5, regionCode: "KR", safeSearch: "moderate" }
     });
     return response.data.items || [];
   } catch (err) {
@@ -93,9 +125,14 @@ async function fetchYoutubeVideos(query) {
 }
 
 async function loadComponentData() {
-  if (!props.companyName || props.companyName === "해당 기업") { videos.value = []; return; }
+  if (!props.companyName || props.companyName === "해당 기업") {
+    videos.value = [];
+    selectedVideo.value = null;
+    return;
+  }
   isLoading.value = true;
   errorMessage.value = "";
+  selectedVideo.value = null;
 
   try {
     let result = await fetchYoutubeVideos(`${props.companyName} 주식 분석`);
@@ -103,8 +140,10 @@ async function loadComponentData() {
     if (result.length === 0) result = await fetchYoutubeVideos(`${props.companyName} 뉴스`);
 
     videos.value = result;
+    selectedVideo.value = result[0] || null;
   } catch (error) {
     videos.value = [];
+    selectedVideo.value = null;
 
     if (error.message === "YOUTUBE_QUOTA_EXCEEDED") {
       errorMessage.value =
@@ -121,62 +160,167 @@ async function loadComponentData() {
   }
 }
 
+function selectVideo(video) {
+  selectedVideo.value = video;
+}
+
+function isSelectedVideo(video) {
+  return selectedVideo.value?.id?.videoId === video.id?.videoId;
+}
+
 watch(() => props.companyName, loadComponentData);
 onMounted(loadComponentData);
 </script>
 
 <style scoped>
 .youtube-feed-container { display: flex; flex-direction: column; min-height: 100%; height: 100%; }
-.feed-header { margin-bottom: 16px; text-align: center; }
+.feed-header { width: 100%; margin-bottom: 16px; text-align: left; }
 .header-title { display: flex; align-items: center; gap: 8px; }
 .header-title h3 { font-size: 15px; font-weight: 800; color: var(--text1); margin: 0; }
 .header-caption { font-size: 12px; color: var(--text3); margin-top: 6px; }
 
-.video-grid {
-  display: flex;
+.video-browser {
   flex: 1;
-  align-items: center;
-  justify-content: center;
-  gap: 18px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.selected-video-card {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--cream);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.07);
+}
+.video-player {
+  position: relative;
+  width: 100%;
+  max-height: 340px;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #0f172a;
+}
+.video-player iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.selected-video-info {
+  padding: 14px 16px 16px;
+  text-align: left;
+}
+.selected-video-info h3 {
+  margin: 0;
+  color: var(--text1);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+.selected-video-info p {
+  margin: 5px 0 0;
+  color: var(--text3);
+  font-size: 11.5px;
+}
+.video-carousel {
+  display: flex;
+  gap: 10px;
   width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 4px 4px 12px;
+  padding: 2px 2px 10px;
   scroll-snap-type: x proximity;
-  margin: 0;
+  overscroll-behavior-inline: contain;
 }
-.video-grid::-webkit-scrollbar { height: 5px; }
-.video-grid::-webkit-scrollbar-thumb { background: var(--primary-border); border-radius: 999px; }
-
-.video-card {
-  flex: 0 0 min(360px, 90%);
-  scroll-snap-align: center;
-  background: var(--cream); border-radius: 14px; overflow: hidden;
-  border: 1px solid var(--border); transition: all 0.3s ease;
+.video-carousel::-webkit-scrollbar { height: 5px; }
+.video-carousel::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--primary-border);
 }
-.video-card:hover { transform: translateY(-4px); border-color: #c9d3dd; box-shadow: 0 16px 30px rgba(15,23,42,0.08); }
-
-.video-thumbnail-wrapper { position: relative; width: 100%; padding-top: 56.25%; background: var(--cream-soft); cursor: pointer; }
-.thumbnail-img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
-.play-icon { 
-  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-  font-size: 40px; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.5); opacity: 0.9;
+.video-select-card {
+  flex: 0 0 clamp(170px, 38%, 225px);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--cream);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  scroll-snap-align: start;
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
-
-.video-info { padding: 16px; text-align: left; background: var(--cream); }
-.video-title {
-  font-size: 14.5px; font-weight: 800; color: var(--text1); line-height: 1.45; margin: 0 0 8px 0;
-  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+.video-select-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary-border);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.07);
 }
-.channel-title { font-size: 12.5px; color: var(--text3); }
-
-@media (min-width: 1400px) {
-  .video-card { flex-basis: min(390px, 34%); }
+.video-select-card.active {
+  border-color: var(--primary);
+  background: var(--primary-bg);
+  box-shadow: inset 0 0 0 1px rgba(255, 106, 0, 0.12);
+}
+.carousel-thumbnail {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--cream-soft);
+}
+.carousel-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.25s ease;
+}
+.video-select-card:hover .carousel-thumbnail img { transform: scale(1.04); }
+.play-badge {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.78);
+  color: #fff;
+  font-size: 10px;
+}
+.video-select-card.active .play-badge { background: var(--primary); }
+.carousel-video-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 10px 10px;
+}
+.carousel-video-info strong {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text1);
+  font-size: 11.5px;
+  font-weight: 750;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.carousel-video-info small {
+  overflow: hidden;
+  color: var(--text3);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (max-width: 760px) {
-  .video-grid { justify-content: flex-start; }
-  .video-card { flex-basis: min(320px, 92%); }
+  .video-select-card { flex-basis: min(190px, 74%); }
+  .selected-video-info { padding: 12px 13px 14px; }
 }
 
 .feed-state-box {
