@@ -1,5 +1,5 @@
 <template>
-  <div class="detail-container">
+  <div class="detail-container" :class="{ expanded: isDetailExpanded }">
     <div v-if="isLoading" class="loading-state">
       <div class="spinner"></div>
       <template v-if="randomSavedTerm">
@@ -15,6 +15,41 @@
     <div v-else-if="news" class="detail-scroll-area">
       
       <header class="detail-header">
+        <div class="detail-window-actions">
+          <button
+            type="button"
+            class="detail-window-toggle"
+            :title="isDetailExpanded ? '상세 화면 닫기' : '상세 화면 전체 열기'"
+            :aria-label="isDetailExpanded ? '상세 화면 닫기' : '상세 화면 전체 열기'"
+            :aria-pressed="isDetailExpanded"
+            @click="isDetailExpanded = !isDetailExpanded"
+          >
+            <svg v-if="isDetailExpanded" viewBox="0 0 24 24" aria-hidden="true">
+              <polyline points="8 3 8 8 3 8" />
+              <polyline points="16 3 16 8 21 8" />
+              <polyline points="8 21 8 16 3 16" />
+              <polyline points="16 21 16 16 21 16" />
+            </svg>
+            <svg v-else viewBox="0 0 24 24" aria-hidden="true">
+              <polyline points="15 3 21 3 21 9" />
+              <polyline points="9 3 3 3 3 9" />
+              <polyline points="15 21 21 21 21 15" />
+              <polyline points="9 21 3 21 3 15" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="detail-window-close"
+            title="상세 화면 닫기"
+            aria-label="상세 화면 닫기"
+            @click="closeDetailToNews"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
         <h1 class="detail-title">{{ news.title }}</h1>
 
         <div class="detail-meta-row">
@@ -488,7 +523,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, inject } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import {
   fetchNewsDetail,
   fetchComments,
@@ -508,7 +543,9 @@ import NewsYoutubeFeed from "../components/news/NewsYoutubeFeed.vue";
 import NewsKakaoMap from "../components/news/NewsKakaoMap.vue";
 
 const route = useRoute();
+const router = useRouter();
 const { currentUser, isAuthenticated } = useAuth();
+const isDetailExpanded = ref(false);
 const news = ref(null);
 const isLoading = ref(false);
 const comments = ref([]);
@@ -709,6 +746,11 @@ function openAiReport() {
 
 function closeAiReport() {
   showAiReport.value = false;
+}
+
+function closeDetailToNews() {
+  isDetailExpanded.value = false;
+  router.push({ path: "/news", query: route.query });
 }
 
 function handleReportKeydown(event) {
@@ -1265,8 +1307,19 @@ function inferCompanyNamesFromTitle(title) {
   container-name: news-detail;
   border: none;
   border-radius: 20px;
-  background: var(--cream);
+  background: #ffffff;
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+}
+.detail-container.expanded {
+  position: fixed;
+  top: 76px;
+  right: 8px;
+  bottom: 8px;
+  left: calc(var(--stockeasy-sidebar-width, 270px) + 8px);
+  z-index: 180;
+  width: auto;
+  height: auto;
+  margin: 0;
 }
 .loading-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text3); gap: 12px; }
 .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
@@ -1274,8 +1327,15 @@ function inferCompanyNamesFromTitle(title) {
 .loading-term-card strong { display: block; color: var(--primary); font-size: 15px; margin-bottom: 7px; }
 .loading-term-card span { display: block; color: var(--text2); font-size: 13px; line-height: 1.65; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.detail-scroll-area { flex: 1; overflow-y: auto; padding: 24px; text-align: left; }
-.detail-header { display: flex; flex-direction: column; gap: 14px; padding: 8px 0 18px; }
+.detail-scroll-area { flex: 1; overflow-y: auto; padding: 24px; text-align: left; background: #ffffff; }
+.detail-header { display: flex; flex-direction: column; gap: 14px; width: 100%; padding: 8px 0 18px; }
+.detail-window-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.detail-window-toggle,
+.detail-window-close { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 9px; background: #ffffff; color: var(--text2); cursor: pointer; transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease; }
+.detail-window-toggle:hover,
+.detail-window-close:hover { border-color: #cbd5e1; color: var(--primary); background: #ffffff; }
+.detail-window-toggle svg,
+.detail-window-close svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .detail-meta-row { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; font-size: 13px; color: var(--text3); }
 .related-company-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .related-company-row span { color: var(--text3); font-size: 11.5px; font-weight: 800; }
@@ -1286,14 +1346,14 @@ function inferCompanyNamesFromTitle(title) {
 .sentiment-tag.up { background: var(--signal-up-bg, #fef2f2); color: var(--signal-up, #dc2626); }
 .sentiment-tag.down { background: var(--signal-down-bg, #eff6ff); color: var(--signal-down, #2563eb); }
 .sentiment-tag.neutral { background: var(--signal-neutral-bg, #f1f5f9); color: var(--signal-neutral, #64748b); }
-.detail-title { max-width: 900px; margin: 0; font-size: clamp(24px, 3.2cqw, 38px); font-weight: 900; color: var(--text1); line-height: 1.25; letter-spacing: -0.055em; }
+.detail-title { max-width: none; width: 100%; margin: 0; font-size: clamp(24px, 3.2cqw, 38px); font-weight: 900; color: var(--text1); line-height: 1.25; letter-spacing: -0.055em; }
 .action-bar-row { display: flex; justify-content: space-between; align-items: center; font-size: 13.5px; color: var(--text2); margin-top: 4px; }
 .author-txt { min-height: 20px; display: inline-flex; align-items: center; color: var(--text2); }
 .detail-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
 .news-save-action { position: relative; display: flex; flex-direction: column; align-items: flex-end; }
 .news-save-btn { min-height: 38px; display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border: 1px solid var(--border); border-radius: 999px; background: var(--cream); color: var(--text2); font-size: 12px; font-weight: 750; cursor: pointer; transition: all 0.15s ease; }
 .news-save-btn:hover { border-color: var(--primary-border); background: var(--primary-bg); color: var(--primary); }
-.news-save-btn.saved { border-color: var(--primary); background: var(--primary); color: #fff; }
+.news-save-btn.saved { border-color: var(--border); background: #ffffff; color: var(--primary); }
 .news-save-btn:disabled { cursor: not-allowed; }
 .news-save-btn:not(.saved):disabled { opacity: 0.55; }
 .news-save-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
@@ -1314,10 +1374,17 @@ function inferCompanyNamesFromTitle(title) {
 .upper-right-widgets { flex: 0.9; min-width: 380px; display: flex; flex-direction: column; gap: 20px; }
 .section-sub-title, .lower-section-title { display: flex; align-items: center; gap: 10px; color: var(--text1); }
 .section-sub-title { font-size: 15px; font-weight: 750; margin: 0 0 16px; }
-.section-index { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 24px; padding: 0 8px; border-radius: 999px; background: rgba(255, 106, 0, 0.14); border: 1px solid rgba(255, 126, 32, 0.32); color: #ff8a1f; font-size: 10px; font-weight: 900; letter-spacing: 0.06em; }
+.section-index { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 24px; padding: 0 8px; border-radius: 999px; background: #ffffff; border: 1px solid var(--border); color: #ff8a1f; font-size: 10px; font-weight: 900; letter-spacing: 0.06em; }
 .upper-left-content section, .upper-left-content article { margin-bottom: 20px; }
-.detail-article-body, .ai-terms-section, .ai-checkpoint-section, .ai-highlight-section, .related-widgets-section {
-  background: var(--cream);
+.detail-article-body {
+  background: #ffffff;
+  border: none;
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+}
+.ai-terms-section, .ai-checkpoint-section, .ai-highlight-section, .related-widgets-section {
+  background: #ffffff;
   border: none;
   border-radius: 18px;
   padding: 22px;
@@ -1330,23 +1397,23 @@ function inferCompanyNamesFromTitle(title) {
 .related-widgets-section > .section-sub-title {
   color: var(--text1);
 }
-.rewritten-box { display: flex; flex-direction: column; gap: 10px; font-size: 14.5px; color: var(--text1); line-height: 1.8; background: var(--cream-soft); padding: 20px; border-radius: 14px; border: 1px solid var(--primary-border); margin: 0; }
+.rewritten-box { display: flex; flex-direction: column; gap: 10px; font-size: 14.5px; color: var(--text1); line-height: 1.8; background: #ffffff; padding: 20px; border-radius: 14px; border: 1px solid var(--border); margin: 0; }
 .briefing-sentence { margin: 0; padding: 4px 8px; border-radius: 6px; }
 .briefing-sentence.is-highlighted { background: transparent; color: var(--ai); font-weight: inherit; box-shadow: none; }
 .briefing-reference { margin-left: 3px; color: var(--primary, #ff5a1f); font-size: 10.5px; font-weight: 800; vertical-align: super; }
 .highlight-list { display: flex; flex-direction: column; gap: 10px; }
-.highlight-item-box { display: flex; align-items: flex-start; gap: 12px; background: var(--cream); border: 1px solid var(--primary-border); padding: 15px; border-radius: 12px; box-shadow: 0 6px 20px rgba(15, 23, 42, 0.05); }
+.highlight-item-box { display: flex; align-items: flex-start; gap: 12px; background: #ffffff; border: 1px solid var(--border); padding: 15px; border-radius: 12px; box-shadow: 0 6px 20px rgba(15, 23, 42, 0.05); }
 .fact-reference { flex-shrink: 0; display: inline-flex; align-items: flex-start; justify-content: center; padding-top: 2px; color: var(--primary, #ff5a1f); font-size: 12px; font-weight: 800; }
 .fact-content { min-width: 0; }
 .hl-sentence { font-size: 14px; line-height: 1.55; font-weight: 800; color: var(--text1); margin: 0; }
 .hl-reason { font-size: 12.5px; line-height: 1.5; color: var(--text3); margin: 6px 0 0; }
-.highlight-empty-state { padding: 40px 20px; border: 1px dashed var(--border); border-radius: 12px; color: var(--text3); font-size: 13px; text-align: center; background: var(--cream-soft); }
+.highlight-empty-state { padding: 40px 20px; border: 1px dashed var(--border); border-radius: 12px; color: var(--text3); font-size: 13px; text-align: center; background: #ffffff; }
 .terms-pill-grid { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; }
-.term-detail-card { position: relative; min-width: 120px; max-width: 100%; background: var(--cream); border-radius: 10px; border: 1px solid var(--primary-border); overflow: hidden; transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease; }
-.term-detail-card:hover { background: #fff7ed; border-color: #dfc49e; box-shadow: 0 4px 14px rgba(184, 112, 63, 0.08); }
-.term-detail-card[open] { background: var(--ai-bg); border-color: var(--ai-border); box-shadow: 0 4px 14px rgba(184, 112, 63, 0.08); }
+.term-detail-card { position: relative; min-width: 120px; max-width: 100%; background: #ffffff; border-radius: 10px; border: 1px solid var(--border); overflow: hidden; transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease; }
+.term-detail-card:hover { background: #ffffff; border-color: #cbd5e1; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08); }
+.term-detail-card[open] { background: #ffffff; border-color: var(--border); box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08); }
 .term-detail-card[open] { flex-basis: 100%; }
-.term-badge-name { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 10px 9px 13px; color: var(--primary); font-size: 12.5px; font-weight: 800; cursor: pointer; list-style: none; user-select: none; }
+.term-badge-name { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 10px 9px 13px; color: var(--text1); font-size: 12.5px; font-weight: 800; cursor: pointer; list-style: none; user-select: none; }
 .term-detail-card[open] .term-badge-name { padding-right: 10px; }
 .term-badge-name::-webkit-details-marker { display: none; }
 .term-explanation-box { padding: 4px 13px 13px; }
@@ -1358,15 +1425,15 @@ function inferCompanyNamesFromTitle(title) {
 .term-save-btn.saved svg { fill: currentColor; }
 .term-save-btn:disabled { cursor: default; opacity: 0.5; }
 .term-save-error { margin: 8px 0 0; color: #dc2626; font-size: 10.5px; line-height: 1.4; }
-.checkpoint-list { padding: 15px 15px 15px 34px; color: var(--text1); font-size: 13.5px; line-height: 1.75; margin: 0; background: var(--cream); border: 1px solid var(--primary-border); border-radius: 12px; }
+.checkpoint-list { padding: 15px 15px 15px 34px; color: var(--text1); font-size: 13.5px; line-height: 1.75; margin: 0; background: #ffffff; border: 1px solid var(--border); border-radius: 12px; }
 .checkpoint-list li { margin-bottom: 6px; list-style-type: square; }
 .related-widgets-section { margin-top: 0; }
 .related-widgets-panel { width: 100%; }
-.widget-tabs-bar { display: flex; background: var(--cream-soft); border: 1px solid var(--primary-border); padding: 5px; border-radius: 999px; gap: 4px; }
+.widget-tabs-bar { display: flex; background: #ffffff; border: 1px solid var(--border); padding: 5px; border-radius: 999px; gap: 4px; }
 .tab-btn { flex: 1; border: none; background: transparent; padding: 10px 0; font-size: 13px; font-weight: 700; color: var(--text2); border-radius: 999px; cursor: pointer; transition: all 0.15s ease; }
 .tab-btn:hover { color: var(--primary, #ff5a1f); }
 .tab-btn.active { background: var(--cream); color: var(--primary); font-weight: 850; box-shadow: inset 0 0 0 1px var(--primary-border), 0 4px 12px rgba(15, 23, 42, 0.05); }
-.widget-content-body { background: var(--cream); border: 1px solid var(--primary-border); border-radius: 16px; padding: 20px; min-height: 500px; display: flex; flex-direction: column; margin-top: 14px; overflow: hidden; }
+.widget-content-body { background: #ffffff; border: 1px solid var(--border); border-radius: 16px; padding: 20px; min-height: 500px; display: flex; flex-direction: column; margin-top: 14px; overflow: hidden; }
 .pane-title-info { margin-bottom: 16px; }
 .pane-title-info h4 { font-size: 11px; font-weight: 800; color: var(--text3); letter-spacing: 0.04em; margin: 0 0 2px 0; }
 .pane-title-info p { font-size: 12px; color: var(--text2); margin: 0; }
@@ -1420,7 +1487,7 @@ function inferCompanyNamesFromTitle(title) {
 .chat-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .comment-login-notice { border-top: 1px solid var(--border); padding-top: 14px; color: var(--text3); font-size: 12.5px; text-align: center; }
 .comment-login-notice a { color: var(--primary, #ff5a1f); font-weight: 700; }
-.dashboard-lower-analysis { margin-top: 24px; padding: 22px; background: var(--cream-soft); border: 1px solid var(--border); border-radius: 14px; }
+.dashboard-lower-analysis { margin-top: 24px; padding: 22px; background: #ffffff; border: 1px solid var(--border); border-radius: 14px; }
 .lower-section-title { font-size: 17px; font-weight: 800; margin: 0 0 20px; }
 .ai-analysis-grid { display: flex; gap: 20px; }
 @media (max-width: 768px) { .ai-analysis-grid { flex-direction: column; } }
@@ -1570,6 +1637,7 @@ function inferCompanyNamesFromTitle(title) {
 }
 
 @media (max-width: 768px) {
+  .detail-container.expanded { top: 0; left: 0; right: 0; bottom: 0; border-radius: 0; }
   .action-bar-row { align-items: center; gap: 12px; }
   .detail-actions { flex-wrap: nowrap; justify-content: flex-end; margin-left: auto; }
   .report-overlay { padding: 0; }

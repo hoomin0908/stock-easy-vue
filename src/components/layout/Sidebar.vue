@@ -17,7 +17,6 @@
           <line x1="9" y1="4" x2="9" y2="20" />
           <polyline points="6,9 4,12 6,15" style="display:none" />
         </svg>
-        <span v-if="!isOpen"></span>
       </button>
     </div>
 
@@ -36,7 +35,7 @@
     </nav>
 
     <div
-      v-if="isOpen"
+      v-show="isOpen"
       class="section-content"
       :class="{ 'watchlist-content': activeSection === 'watchlist' }"
     >
@@ -347,6 +346,16 @@ function goToNewsHome() {
   router.push({ path: "/news", query: {} });
 }
 
+function updateSidebarWidthVar() {
+  const width = window.innerWidth <= 760
+    ? 0
+    : window.innerWidth <= 1180 || !isOpen.value
+      ? 68
+      : 270;
+
+  document.documentElement.style.setProperty("--stockeasy-sidebar-width", `${width}px`);
+}
+
 async function handleLogout() {
   if (isLoggingOut.value) return;
 
@@ -638,12 +647,17 @@ function handleThemeClick(theme) {
 }
 
 onMounted(() => {
+  updateSidebarWidthVar();
+  window.addEventListener("resize", updateSidebarWidthVar);
+
   if (currentUser.value) {
     loadInterestStocks();
     loadStocks();
     loadRecommendedThemes();
   }
 });
+
+watch(isOpen, updateSidebarWidthVar, { immediate: true });
 
 watch(currentUser, (user) => {
   stockSearch.value = "";
@@ -676,6 +690,7 @@ watch(
 
 onBeforeUnmount(() => {
   window.clearTimeout(searchTimer);
+  window.removeEventListener("resize", updateSidebarWidthVar);
 });
 </script>
 
@@ -684,7 +699,7 @@ onBeforeUnmount(() => {
 .sidebar.collapsed { width: 68px; }
 .sidebar-header { min-height: 44px; display: flex; align-items: center; gap: 6px; margin: 0 12px 12px; }
 .sidebar-logo { min-width: 0; flex: 1; display: flex; align-items: center; gap: 9px; padding: 6px 8px; color: var(--text1); font-size: 17px; font-weight: 850; letter-spacing: 0; overflow: hidden; }
-.sidebar.collapsed .sidebar-header { min-height: 88px; flex-direction: column; justify-content: flex-start; gap: 8px; margin-inline: 10px; margin-bottom: 8px; }
+.sidebar.collapsed .sidebar-header { min-height: 96px; flex-direction: column; justify-content: flex-start; gap: 18px; margin-inline: 10px; margin-bottom: 12px; }
 .sidebar.collapsed .sidebar-logo { flex: 0 0 auto; justify-content: center; width: 100%; padding: 4px 0; }
 .logo-badge { width: 32px; height: 32px; border-radius: 9px; background: var(--primary); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 22px rgba(255, 106, 0, 0.32); flex-shrink: 0; }
 .logo-badge svg { width: 14px; height: 14px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; }
@@ -692,8 +707,7 @@ onBeforeUnmount(() => {
 .toggle-btn:hover { background: var(--bg2); color: var(--text1); }
 .toggle-btn svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.8; fill: none; transition: transform 0.25s ease; }
 .toggle-btn span { display: none; }
-.sidebar.collapsed .toggle-btn { width: 48px; height: auto; min-height: 44px; flex-direction: column; gap: 4px; padding: 5px 3px; font-size: 10.5px; font-weight: 750; line-height: 1.2; text-align: center; white-space: normal; }
-.sidebar.collapsed .toggle-btn span { display: block; }
+.sidebar.collapsed .toggle-btn { width: 42px; height: 42px; min-height: 42px; padding: 0; }
 .section-nav { display: flex; flex-direction: column; gap: 8px; padding: 4px 12px 10px; }
 .section-btn { min-height: 52px; display: flex; align-items: center; gap: 12px; padding: 14px; border: none; background: transparent; border-radius: var(--radius); cursor: pointer; color: var(--text2); font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; transition: all 0.2s ease; }
 .section-btn:hover { background: var(--bg2); color: var(--text1); }

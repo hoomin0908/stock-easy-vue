@@ -522,7 +522,7 @@ watch(
 </script>
 
 <style scoped>
-.split-container { display: flex; width: 100%; height: 100%; background: #fffefe; overflow: hidden; }
+.split-container { display: flex; width: 100%; height: 100%; background: #eef2f7; overflow: hidden; }
 .split-container.resizing { cursor: col-resize; }
 .list-side {
   flex: 1;
@@ -533,7 +533,7 @@ watch(
   border-radius: 20px;
   display: flex;
   flex-direction: column;
-  background: #eef2f7;
+  background: #ffffff;
   overflow: hidden;
   box-shadow: var(--panel-shadow);
 }
@@ -595,7 +595,7 @@ watch(
   background: var(--bg2);
   border: none;
 }
-.list-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 0 15px 15px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 18px; background: #eef2f7; }
+.list-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 0 15px 15px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 18px; background: #ffffff; }
 .list-scroll.detail-open { display: flex; flex-direction: column; gap: 16px; }
 .list-scroll > .empty-state { grid-column: 1 / -1; }
 .list-scroll::-webkit-scrollbar { width: 4px; }
@@ -626,7 +626,7 @@ watch(
 .page-number-btn:hover { border-color: var(--primary-border); color: var(--primary); }
 .page-number-btn.active { background: var(--primary); border-color: var(--primary); color: #ffffff; }
 .page-nav-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.detail-side { flex: 1.3; min-width: 0; height: 100%; background: var(--cream); display: flex; flex-direction: column; }
+.detail-side { flex: 1.3; min-width: 0; height: 100%; background: transparent; display: flex; flex-direction: column; }
 .mobile-list-back { display: none; }
 .select-notice { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; }
 .select-notice h3 { font-size: 16px; font-weight: 700; color: var(--text1); margin-top: 16px; }

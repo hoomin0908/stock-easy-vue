@@ -79,6 +79,7 @@ onMounted(() => {
 
 <style scoped>
 .app { display: flex; height: 100vh; background: var(--bg); }
+.app { --stockeasy-sidebar-width: 270px; }
 .body { display: flex; flex: 1; overflow: hidden; }
 .content-shell { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
