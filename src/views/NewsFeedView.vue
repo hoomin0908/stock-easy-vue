@@ -548,7 +548,7 @@ watch(
   flex-direction: column;
   background: var(--cream);
   overflow: hidden;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+  box-shadow: var(--panel-shadow);
 }
 .list-side.has-detail { flex: 0 0 auto; min-width: 240px; max-width: 760px; }
 .split-resizer { position: relative; flex: 0 0 8px; margin-left: -4px; margin-right: -4px; z-index: 5; cursor: col-resize; touch-action: none; }
@@ -587,7 +587,7 @@ watch(
 .filter-chip { flex: 0 0 auto; min-width: 54px; padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--cream); font-size: 12.5px; font-weight: 700; color: var(--text2); cursor: pointer; transition: all 0.18s ease; white-space: nowrap; }
 .filter-chip:hover { border-color: var(--primary-border); color: var(--primary); }
 .filter-chip.active { background: var(--primary); color: #ffffff; border-color: var(--primary); font-weight: 800; box-shadow: none; }
-.list-scroll { flex: 1; overflow-y: auto; padding: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 14px; background: linear-gradient(180deg, var(--bg2) 0%, var(--cream) 42%); }
+.list-scroll { flex: 1; overflow-y: auto; padding: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 14px; background: var(--bg2); }
 .list-scroll.detail-open { display: flex; flex-direction: column; gap: 12px; }
 .list-scroll > .empty-state { grid-column: 1 / -1; }
 .list-scroll::-webkit-scrollbar { width: 4px; }

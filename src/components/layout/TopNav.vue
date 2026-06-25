@@ -155,7 +155,6 @@ async function handleLogout() {
   align-items: center;
   padding: 0 28px;
   background: var(--cream);
-  backdrop-filter: blur(16px);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -190,7 +189,6 @@ async function handleLogout() {
 .nav-tab.active {
   color: var(--primary);
   font-weight: 800;
-  text-shadow: 0 0 18px rgba(255, 106, 0, 0.3);
 }
 .nav-tab.active::after {
   opacity: 1;
@@ -236,7 +234,7 @@ async function handleLogout() {
   cursor: pointer;
   transition: all 0.15s ease;
 }
-.theme-toggle-btn:hover { border-color: var(--primary-border); box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06); }
+.theme-toggle-btn:hover { border-color: var(--primary-border); }
 .theme-toggle-btn svg { width: 18px; height: 18px; stroke: var(--text2); stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .icon-btn {
   width: 36px;
@@ -250,7 +248,7 @@ async function handleLogout() {
   cursor: pointer;
   transition: all 0.15s ease;
 }
-.icon-btn:hover { border-color: var(--primary-border); box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06); }
+.icon-btn:hover { border-color: var(--primary-border); }
 .icon-btn svg { width: 18px; height: 18px; stroke: var(--text2); stroke-width: 1.8; fill: none; stroke-linecap: round; }
 
 .auth-link, .logout-btn {
@@ -262,7 +260,7 @@ async function handleLogout() {
   font-size: 12.5px;
   cursor: pointer;
 }
-.auth-link:hover, .logout-btn:hover { border-color: var(--primary-border); color: var(--primary); box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06); }
+.auth-link:hover, .logout-btn:hover { border-color: var(--primary-border); color: var(--primary); }
 .signup-link {
   background: var(--primary);
   color: #ffffff;

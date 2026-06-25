@@ -84,39 +84,59 @@ onMounted(() => {
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
 
 .app.theme-dark {
-  --cream: #171a21;
-  --cream-soft: #1d222b;
-  --cream-deep: #252c37;
-  --charcoal: #0f1218;
-  --charcoal-soft: #171a21;
+  --cream: #111318;
+  --cream-soft: #161a21;
+  --cream-deep: #1b2029;
+  --charcoal: #0b0d11;
+  --charcoal-soft: #111318;
 
   --ai: #f59e0b;
-  --ai-bg: rgba(245, 158, 11, 0.1);
-  --ai-bg-strong: rgba(245, 158, 11, 0.18);
-  --ai-border: rgba(245, 158, 11, 0.32);
+  --ai-bg: #251806;
+  --ai-bg-strong: #332007;
+  --ai-border: #6b460f;
 
-  --signal-up-bg: rgba(220, 38, 38, 0.12);
-  --signal-down-bg: rgba(37, 99, 235, 0.14);
-  --signal-neutral-bg: rgba(100, 116, 139, 0.16);
+  --signal-up-bg: #2a1113;
+  --signal-down-bg: #101b33;
+  --signal-neutral-bg: #1c222b;
   --danger: #f87171;
-  --danger-bg: rgba(248, 113, 113, 0.08);
-  --danger-border: rgba(248, 113, 113, 0.28);
-  --danger-surface: #1f232c;
+  --danger-bg: #221113;
+  --danger-border: #5b262b;
+  --danger-surface: #15181f;
   --success: #34d399;
-  --success-bg: rgba(52, 211, 153, 0.12);
+  --success-bg: #0d241b;
   --error: #fb7185;
-  --error-bg: rgba(251, 113, 133, 0.12);
+  --error-bg: #2b1118;
 
-  --bg: #101319;
-  --bg2: #121720;
-  --bg3: #1d2430;
-  --border: #2b3442;
-  --text1: #f8fafc;
-  --text2: #d2dae7;
-  --text3: #99a6b8;
+  --bg: #0b0d11;
+  --bg2: #0f1218;
+  --bg3: #171c24;
+  --border: #303743;
+  --text1: #ffffff;
+  --text2: #d9dee7;
+  --text3: #a9b1bf;
 
-  --primary-bg: rgba(255, 106, 0, 0.14);
-  --primary-border: rgba(255, 126, 32, 0.34);
-  --panel-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+  --primary-bg: #2a180c;
+  --primary-border: #7a4217;
+  --panel-shadow: none;
+}
+
+.app.theme-dark :deep(.data-panel),
+.app.theme-dark :deep(.list-side),
+.app.theme-dark :deep(.news-card),
+.app.theme-dark :deep(.saved-card),
+.app.theme-dark :deep(.detail-article-body),
+.app.theme-dark :deep(.ai-terms-section),
+.app.theme-dark :deep(.ai-checkpoint-section),
+.app.theme-dark :deep(.ai-highlight-section),
+.app.theme-dark :deep(.related-widgets-section),
+.app.theme-dark :deep(.highlight-item-box),
+.app.theme-dark :deep(.widget-content-body),
+.app.theme-dark :deep(.comment-menu-popover) {
+  box-shadow: none;
+}
+
+.app.theme-dark :deep(.nav-tab.active),
+.app.theme-dark :deep(.play-icon) {
+  text-shadow: none;
 }
 </style>
