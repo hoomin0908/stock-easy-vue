@@ -548,7 +548,7 @@ watch(
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
-  padding: 24px 24px 0;
+  padding: 15px 15px 0;
   margin-bottom: 18px;
 }
 .eyebrow {
@@ -568,7 +568,7 @@ watch(
   font-size: 12.5px;
   margin-top: 6px;
 }
-.filter-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 0 24px 18px; background: transparent; }
+.filter-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 0 15px 18px; background: transparent; }
 .selected-company-label {
   display: inline-flex;
   align-items: center;
@@ -595,7 +595,7 @@ watch(
   background: var(--bg2);
   border: none;
 }
-.list-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 18px; background: #eef2f7; }
+.list-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 0 15px 15px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 18px; background: #eef2f7; }
 .list-scroll.detail-open { display: flex; flex-direction: column; gap: 16px; }
 .list-scroll > .empty-state { grid-column: 1 / -1; }
 .list-scroll::-webkit-scrollbar { width: 4px; }
@@ -636,12 +636,12 @@ watch(
 
 @media (max-width: 1100px) {
   .list-side.has-detail { min-width: 240px; }
-  .feed-heading { padding: 18px 18px 0; margin-bottom: 14px; }
+  .feed-heading { padding: 10px 10px 0; margin-bottom: 14px; }
   .filter-bar { padding: 0 18px 14px; gap: 6px; }
   .selected-company-label { padding: 10px 12px; font-size: 14px; }
   .selected-company-label strong { font-size: 16px; }
   .selected-company-label span { font-size: 13px; }
-  .list-scroll { padding: 12px; }
+  .list-scroll { padding: 0 10px 10px; }
 }
 
 @media (max-width: 900px) {
