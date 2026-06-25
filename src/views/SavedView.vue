@@ -2,7 +2,7 @@
   <div class="saved-page">
     <header class="page-header">
       <div>
-        <p class="page-kicker">다시 보는 뉴스</p>
+        <p class="page-kicker">Saved News</p>
         <h1>저장한 뉴스</h1>
       </div>
       <span v-if="!isLoading && !errorMessage" class="saved-count">
