@@ -231,7 +231,7 @@ onMounted(loadSavedTerms);
   border-radius: var(--radius-lg);
   background: var(--cream);
   padding: 18px;
-  box-shadow: 0 8px 22px rgba(255, 106, 0, 0.035);
+  box-shadow: var(--panel-shadow);
 }
 .state-box {
   min-height: 180px;
@@ -256,7 +256,7 @@ onMounted(loadSavedTerms);
   animation: spin 0.8s linear infinite;
 }
 .error-state {
-  color: #dc2626;
+  color: var(--danger);
 }
 .retry-btn,
 .delete-btn {
@@ -338,17 +338,17 @@ onMounted(loadSavedTerms);
 .retry-btn:hover {
   border-color: var(--primary);
   background: var(--primary);
-  color: #fff;
+  color: #ffffff;
 }
 .delete-btn:hover:not(:disabled) {
-  border-color: #dc2626;
-  background: #dc2626;
-  color: #fff;
+  border-color: var(--danger);
+  background: var(--danger);
+  color: #ffffff;
 }
 .delete-btn {
-  border-color: #fecaca;
-  background: #fff7f7;
-  color: #dc2626;
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
+  color: var(--danger);
 }
 .delete-btn:disabled {
   cursor: wait;
