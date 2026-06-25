@@ -5,7 +5,14 @@
       :class="{ 'has-detail': route.params.id }"
       :style="route.params.id ? { width: `${listWidth}px` } : undefined"
     >
-      
+      <header class="feed-heading">
+        <div>
+          <p class="eyebrow">NEWS</p>
+          <h1>최신뉴스</h1>
+          <p class="view-description">시장 흐름과 관심 종목에 영향을 줄 수 있는 최신 뉴스를 확인할 수 있습니다.</p>
+        </div>
+      </header>
+
       <div v-if="selectedNewsScopeLabel" class="filter-bar">
         <div
           class="selected-company-label"
@@ -515,7 +522,7 @@ watch(
 </script>
 
 <style scoped>
-.split-container { display: flex; width: 100%; height: 100%; background: var(--cream); overflow: hidden; }
+.split-container { display: flex; width: 100%; height: 100%; background: #fffefe; overflow: hidden; }
 .split-container.resizing { cursor: col-resize; }
 .list-side {
   flex: 1;
@@ -526,7 +533,7 @@ watch(
   border-radius: 20px;
   display: flex;
   flex-direction: column;
-  background: var(--cream);
+  background: #eef2f7;
   overflow: hidden;
   box-shadow: var(--panel-shadow);
 }
@@ -536,7 +543,32 @@ watch(
 .split-resizer:hover::before, .resizing .split-resizer::before { background: var(--primary, #ff5a1f); }
 .split-resizer span { position: absolute; top: 50%; left: 1px; width: 6px; height: 42px; transform: translateY(-50%); border-radius: 4px; background: #cbd5e1; opacity: 0; transition: opacity 0.15s ease, background 0.15s ease; }
 .split-resizer:hover span, .resizing .split-resizer span { opacity: 1; background: var(--primary, #ff5a1f); }
-.filter-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 18px; background: var(--cream); }
+.feed-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 24px 0;
+  margin-bottom: 18px;
+}
+.eyebrow {
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.feed-heading h1 {
+  color: var(--text1);
+  font-size: 24px;
+  line-height: 1.25;
+}
+.view-description {
+  color: var(--text3);
+  font-size: 12.5px;
+  margin-top: 6px;
+}
+.filter-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 0 24px 18px; background: transparent; }
 .selected-company-label {
   display: inline-flex;
   align-items: center;
@@ -563,8 +595,8 @@ watch(
   background: var(--bg2);
   border: none;
 }
-.list-scroll { flex: 1; overflow-y: auto; padding: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 14px; background: var(--bg2); }
-.list-scroll.detail-open { display: flex; flex-direction: column; gap: 12px; }
+.list-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 18px; background: #eef2f7; }
+.list-scroll.detail-open { display: flex; flex-direction: column; gap: 16px; }
 .list-scroll > .empty-state { grid-column: 1 / -1; }
 .list-scroll::-webkit-scrollbar { width: 4px; }
 .list-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
@@ -604,7 +636,8 @@ watch(
 
 @media (max-width: 1100px) {
   .list-side.has-detail { min-width: 240px; }
-  .filter-bar { padding: 12px; gap: 6px; }
+  .feed-heading { padding: 18px 18px 0; margin-bottom: 14px; }
+  .filter-bar { padding: 0 18px 14px; gap: 6px; }
   .selected-company-label { padding: 10px 12px; font-size: 14px; }
   .selected-company-label strong { font-size: 16px; }
   .selected-company-label span { font-size: 13px; }
