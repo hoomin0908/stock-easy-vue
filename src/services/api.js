@@ -12,6 +12,11 @@ export function fetchCurrentUser() {
   return api.get("/accounts/me/");
 }
 
+// PATCH /api/v1/accounts/me/ -> 회원정보 수정
+export function updateCurrentUser(payload) {
+  return api.patch("/accounts/me/", payload);
+}
+
 // POST /api/v1/accounts/signup/ → 회원가입
 export function signupAccount(payload) {
   return api.post("/accounts/signup/", payload);
