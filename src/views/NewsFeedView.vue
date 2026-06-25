@@ -561,28 +561,27 @@ watch(
   display: inline-flex;
   align-items: center;
   flex: 0 0 100%;
-  gap: 6px;
-  padding: 8px 10px;
+  gap: 8px;
+  padding: 12px 14px;
+  border: none;
   border-radius: var(--radius);
   background: var(--bg2);
-  color: var(--text2);
-  font-size: 12.5px;
+  color: var(--text1);
+  font-size: 15px;
 }
 .selected-company-label strong {
   color: var(--text1);
+  font-size: 18px;
   font-weight: 800;
 }
 .selected-company-label span {
   color: var(--text3);
-  font-size: 11.5px;
+  font-size: 14px;
+  font-weight: 600;
 }
 .selected-company-label.topic-search-label {
-  background: var(--primary-bg);
-  border: 1px solid var(--primary-border);
-}
-.selected-company-label.topic-search-label strong,
-.selected-company-label.topic-search-label span {
-  color: var(--primary);
+  background: var(--bg2);
+  border: none;
 }
 .filter-chip { flex: 0 0 auto; min-width: 54px; padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--cream); font-size: 12.5px; font-weight: 700; color: var(--text2); cursor: pointer; transition: all 0.18s ease; white-space: nowrap; }
 .filter-chip:hover { border-color: var(--primary-border); color: var(--primary); }
@@ -629,7 +628,9 @@ watch(
 @media (max-width: 1100px) {
   .list-side.has-detail { min-width: 240px; }
   .filter-bar { padding: 12px; gap: 6px; }
-  .selected-company-label { padding: 7px 9px; font-size: 11.5px; }
+  .selected-company-label { padding: 10px 12px; font-size: 14px; }
+  .selected-company-label strong { font-size: 16px; }
+  .selected-company-label span { font-size: 13px; }
   .filter-chip { flex: 1 1 0; min-width: 44px; padding: 6px 8px; font-size: 11.5px; }
   .list-scroll { padding: 12px; }
 }
