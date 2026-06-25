@@ -571,7 +571,7 @@ async function removeInterestStock(interest) {
 
 // 💡 10대 인기 테마 하드코딩 리스트 구성 완료
 const popularThemes = [
-  "전체", 
+  
   "반도체", 
   "IT · 플랫폼", 
   "자동차", 
@@ -726,7 +726,7 @@ onBeforeUnmount(() => {
 .premium-sector-input { width: 100%; padding: 10px 12px 10px 32px; border-radius: 9px; border: 1px solid var(--border); font-size: 13.5px; background: var(--cream); color: var(--text1); transition: all 0.2s ease; }
 .premium-sector-input:focus { outline: none; border-color: var(--primary); background: var(--cream); box-shadow: 0 0 0 3px rgba(255, 90, 31, 0.08); }
 .sector-grid-layout { display: flex; flex-direction: column; gap: 4px; text-align: left; }
-.luxury-sector-chip { width: 100%; padding: 11px 12px; border-radius: var(--radius); border: 1px solid transparent; background: transparent; color: var(--text2); cursor: pointer; font: inherit; font-size: 14px; line-height: 1.35; text-align: left; transition: all 0.15s ease; }
+.luxury-sector-chip { width: 100%; padding: 11px 12px; border-radius: var(--radius); border: 1px solid transparent; background: transparent; color: var(--text1); cursor: pointer; font: inherit; font-size: 14px; font-weight: 650; line-height: 1.35; text-align: left; transition: all 0.15s ease; }
 .luxury-sector-chip:hover { background: var(--bg2); color: var(--text1); }
 .luxury-sector-chip.active { background: var(--primary-bg); color: var(--primary); border-color: var(--primary-border); font-weight: 600; }
 .sidebar-footer { border-top: 1px solid var(--border); padding: 14px 12px; margin-top: auto; }
