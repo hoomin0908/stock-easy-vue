@@ -174,7 +174,7 @@ onMounted(loadComponentData);
 
 <style scoped>
 .youtube-feed-container { display: flex; flex-direction: column; min-height: 100%; height: 100%; }
-.feed-header { margin-bottom: 16px; text-align: center; }
+.feed-header { width: 100%; margin-bottom: 16px; text-align: left; }
 .header-title { display: flex; align-items: center; gap: 8px; }
 .header-title h3 { font-size: 15px; font-weight: 800; color: var(--text1); margin: 0; }
 .header-caption { font-size: 12px; color: var(--text3); margin-top: 6px; }
@@ -196,6 +196,7 @@ onMounted(loadComponentData);
 .video-player {
   position: relative;
   width: 100%;
+  max-height: 340px;
   aspect-ratio: 16 / 9;
   overflow: hidden;
   background: #0f172a;
@@ -239,7 +240,7 @@ onMounted(loadComponentData);
   background: var(--primary-border);
 }
 .video-select-card {
-  flex: 0 0 clamp(190px, 42%, 260px);
+  flex: 0 0 clamp(170px, 38%, 225px);
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -297,7 +298,7 @@ onMounted(loadComponentData);
   display: flex;
   flex-direction: column;
   gap: 5px;
-  padding: 10px 11px 12px;
+  padding: 8px 10px 10px;
 }
 .carousel-video-info strong {
   display: -webkit-box;
@@ -318,7 +319,7 @@ onMounted(loadComponentData);
 }
 
 @media (max-width: 760px) {
-  .video-select-card { flex-basis: min(210px, 78%); }
+  .video-select-card { flex-basis: min(190px, 74%); }
   .selected-video-info { padding: 12px 13px 14px; }
 }
 
